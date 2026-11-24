@@ -98,3 +98,15 @@ def test_cancellation_releases_seats_once(agent):
     agent.post(path, data={"status": "cancelled"})
     agent.post(path, data={"status": "confirmed"})
     assert db.bookable_offer(1)["available_seats"] == 20
+
+
+def test_payment_status_persists(agent):
+    reservation_id, _ = db.create_reservation(1, 1)
+    path = f"/admin/reservations/{reservation_id}/payment"
+    assert agent.post(path, data={"status": "invalid"}).status_code == 400
+    assert db.list_reservations()[0]["payment_status"] == "unpaid"
+    assert agent.post(path, data={"status": "deposit"}).status_code == 302
+    db.init_db()
+    assert db.list_reservations()[0]["payment_status"] == "deposit"
+    page = agent.get("/admin").get_data(as_text=True)
+    assert 'value="deposit" selected' in page
