@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Dostępne wycieczki</h1>
+{% if offers %}
+<div class="grid">
+  {% for o in offers %}
+  <article class="card">
+    <h2>{{ o.destination }}</h2>
+    <p><b>Termin:</b> {{ o.start_date }} – {{ o.end_date }}</p>
+    <p><b>Cena:</b> {{ "%.2f"|format(o.price) }} zł / os.</p>
+    <p><b>Limit miejsc:</b> {{ o.seats }}</p>
+    <p><b>Typ:</b> {{ o.trip_type }}</p>
+  </article>
+  {% endfor %}
+</div>
+{% else %}
+<p>Brak dostępnych wycieczek.</p>
+{% endif %}
+{% endblock %}

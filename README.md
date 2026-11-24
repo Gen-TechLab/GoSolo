@@ -70,3 +70,53 @@ Funkcje 4 (zamrożenie ceny) i 5 (asystent pakowania) realizujemy po MVP, w tej 
 - **Bohdan Moroz — programista, testy i dokumentacja.** Odpowiada za funkcję 2 (po MVP także 4), konfigurację pytest oraz dokumentację. Przegląda pull requesty Rostyslava.
 
 Zasady współpracy: każda zmiana trafia do głównej gałęzi przez pull request przeglądany przez drugą osobę, każdy pisze testy do własnych modułów, a my potrafimy wyjaśnić cały oddany kod. Dane przykładowe (oferty, klimat i wskazówki dla krajów) przygotowujemy wspólnie.
+
+## Uruchomienie lokalne i zakres implementacji
+
+Minimal Flask + SQLite application covering user stories US01–US03.
+
+### Run locally
+
+```bash
+python -m venv venv
+# Windows: venv\Scripts\activate     macOS/Linux: source venv/bin/activate
+pip install -r requirements.txt
+python app.py
+```
+
+Open http://127.0.0.1:5000
+
+Agent login: **agent / agent123** (change with env vars `AGENT_LOGIN`, `AGENT_PASSWORD`).
+
+Run tests: `pytest`
+
+### Files
+
+| File | What it does |
+|---|---|
+| `app.py` | Flask routes (pages) + login check |
+| `db.py` | SQLite: create table, sample data, add/edit/delete offers |
+| `validation.py` | Checks the offer form data |
+| `templates/` | HTML pages (Jinja) |
+| `static/style.css` | Styles, works on phone and desktop |
+| `tests/` | pytest tests |
+
+### Where each requirement is
+
+**US01 – Katalog wycieczek**
+- List of trips: route `/` → `catalog()` in `app.py`, page `templates/catalog.html`
+- Each offer has destination, dates, price, seat limit, trip type: table `offers` in `db.py`
+- Data from SQLite: `db.list_offers()`
+- Phone + desktop: `<meta name="viewport">` in `base.html` + CSS grid in `style.css`
+
+**US02 – Logowanie agenta**
+- Correct login/password → `/login` sets `session["agent"]`
+- Wrong data → error "Niepoprawny login lub hasło."
+- Panel blocked for guests → `@login_required` decorator redirects to `/login`
+- Logout → `/logout` clears the session
+
+**US03 – Zarządzanie ofertami**
+- Add: `/admin/new`
+- Edit / delete: `/admin/<id>/edit`, `/admin/<id>/delete`
+- Validation: `validate_offer()` in `validation.py`
+- Saved in SQLite: `db.add_offer`, `db.update_offer`, `db.delete_offer` (file `gosolo.db`, survives restart)

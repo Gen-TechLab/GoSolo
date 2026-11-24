@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Panel agenta</h1>
+<p><a class="button" href="{{ url_for('new_offer') }}">+ Dodaj ofertę</a></p>
+<div class="table-wrap">
+<table>
+  <tr><th>Kierunek</th><th>Termin</th><th>Cena</th><th>Miejsca</th><th>Typ</th><th></th></tr>
+  {% for o in offers %}
+  <tr>
+    <td>{{ o.destination }}</td>
+    <td>{{ o.start_date }} – {{ o.end_date }}</td>
+    <td>{{ "%.2f"|format(o.price) }} zł</td>
+    <td>{{ o.seats }}</td>
+    <td>{{ o.trip_type }}</td>
+    <td class="actions">
+      <a href="{{ url_for('edit_offer', offer_id=o.id) }}">Edytuj</a>
+      <form method="post" action="{{ url_for('delete_offer', offer_id=o.id) }}"
+            onsubmit="return confirm('Usunąć ofertę?');">
+        <button type="submit" class="danger">Usuń</button>
+      </form>
+    </td>
+  </tr>
+  {% endfor %}
+</table>
+</div>
+{% endblock %}
