@@ -82,5 +82,19 @@ def test_reservation_enforces_capacity_and_calculates_total(client):
     response = client.post(path, data={"participants": offer["seats"]}, follow_redirects=True)
     assert "58000,00 zł" in response.get_data(as_text=True)
     assert client.post(path, data={"participants": 1}).status_code == 400
-    assert db.bookable_offer(1)["available_seats"] == 0
+    assert len(db.list_reservations()) == 1
     assert "Chorwacja - Split" not in client.get("/?available=1").get_data(as_text=True)
+
+
+def test_cancellation_releases_seats_once(agent):
+    reservation_id, _ = db.create_reservation(1, 20)
+    path = f"/admin/reservations/{reservation_id}/status"
+    agent.post(path, data={"status": "confirmed"})
+    assert db.list_reservations()[0]["status"] == "confirmed"
+    assert db.bookable_offer(1)["available_seats"] == 0
+    agent.post(path, data={"status": "cancelled"})
+    assert db.list_reservations()[0]["status"] == "cancelled"
+    assert db.bookable_offer(1)["available_seats"] == 20
+    agent.post(path, data={"status": "cancelled"})
+    agent.post(path, data={"status": "confirmed"})
+    assert db.bookable_offer(1)["available_seats"] == 20

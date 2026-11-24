@@ -23,4 +23,33 @@
   {% endfor %}
 </table>
 </div>
+<h2>Rezerwacje</h2>
+{% if reservations %}
+<div class="table-wrap">
+<table>
+  <tr><th>Nr</th><th>Kierunek</th><th>Uczestnicy</th><th>Kwota</th><th>Status</th><th>Akcje</th></tr>
+  {% for r in reservations %}
+  <tr>
+    <td>{{ r.id }}</td>
+    <td>{{ r.destination }}</td>
+    <td>{{ r.participants }}</td>
+    <td>{{ r.total_grosz // 100 }},{{ "%02d"|format(r.total_grosz % 100) }} zł</td>
+    <td>{{ reservation_statuses[r.status] }}</td>
+    <td>
+      {% if r.status != 'cancelled' %}
+        <form class="actions" method="post" action="{{ url_for('reservation_status', reservation_id=r.id) }}">
+          {% if r.status == 'pending' %}
+            <button type="submit" name="status" value="confirmed">Potwierdź</button>
+          {% endif %}
+          <button type="submit" class="danger" name="status" value="cancelled">Anuluj</button>
+        </form>
+      {% endif %}
+    </td>
+  </tr>
+  {% endfor %}
+</table>
+</div>
+{% else %}
+<p>Brak rezerwacji.</p>
+{% endif %}
 {% endblock %}

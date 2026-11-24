@@ -143,3 +143,20 @@ def create_reservation(offer_id, participants):
             (offer_id, participants, unit_grosz * participants),
         )
         return reservation.lastrowid, unit_grosz * participants
+
+
+def list_reservations():
+    with closing(get_conn()) as conn:
+        return conn.execute(
+            "SELECT reservations.*, offers.destination FROM reservations "
+            "JOIN offers ON offers.id = reservations.offer_id ORDER BY reservations.id DESC"
+        ).fetchall()
+
+
+def update_reservation_status(reservation_id, status):
+    with closing(get_conn()) as conn, conn:
+        result = conn.execute(
+            "UPDATE reservations SET status = ? WHERE id = ? AND status != 'cancelled'",
+            (status, reservation_id),
+        )
+        return result.rowcount == 1
