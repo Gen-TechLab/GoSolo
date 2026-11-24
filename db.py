@@ -24,6 +24,7 @@ def get_conn():
 def init_db():
     """Create the table if it does not exist and add sample offers once."""
     conn = get_conn()
+    conn.execute("BEGIN IMMEDIATE")
     conn.execute(
         """
         CREATE TABLE IF NOT EXISTS offers (
@@ -45,11 +46,19 @@ def init_db():
             participants INTEGER NOT NULL CHECK (participants > 0),
             total_grosz INTEGER NOT NULL,
             status TEXT NOT NULL DEFAULT 'pending'
-                CHECK (status IN ('pending', 'confirmed', 'cancelled'))
+                CHECK (status IN ('pending', 'confirmed', 'cancelled')),
+            payment_status TEXT NOT NULL DEFAULT 'unpaid'
+                CHECK (payment_status IN ('unpaid', 'deposit', 'paid'))
         )
         """
     )
     conn.execute("CREATE INDEX IF NOT EXISTS reservations_offer ON reservations(offer_id)")
+    columns = conn.execute("PRAGMA table_info(reservations)").fetchall()
+    if not any(column["name"] == "payment_status" for column in columns):
+        conn.execute(
+            "ALTER TABLE reservations ADD COLUMN payment_status TEXT NOT NULL DEFAULT 'unpaid' "
+            "CHECK (payment_status IN ('unpaid', 'deposit', 'paid'))"
+        )
     count = conn.execute("SELECT COUNT(*) FROM offers").fetchone()[0]
     if count == 0:
         conn.executemany(
@@ -157,6 +166,15 @@ def update_reservation_status(reservation_id, status):
     with closing(get_conn()) as conn, conn:
         result = conn.execute(
             "UPDATE reservations SET status = ? WHERE id = ? AND status != 'cancelled'",
+            (status, reservation_id),
+        )
+        return result.rowcount == 1
+
+
+def update_payment_status(reservation_id, status):
+    with closing(get_conn()) as conn, conn:
+        result = conn.execute(
+            "UPDATE reservations SET payment_status = ? WHERE id = ?",
             (status, reservation_id),
         )
         return result.rowcount == 1

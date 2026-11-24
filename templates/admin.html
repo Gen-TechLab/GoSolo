@@ -27,7 +27,7 @@
 {% if reservations %}
 <div class="table-wrap">
 <table>
-  <tr><th>Nr</th><th>Kierunek</th><th>Uczestnicy</th><th>Kwota</th><th>Status</th><th>Akcje</th></tr>
+  <tr><th>Nr</th><th>Kierunek</th><th>Uczestnicy</th><th>Kwota</th><th>Status</th><th>Płatność</th><th>Akcje</th></tr>
   {% for r in reservations %}
   <tr>
     <td>{{ r.id }}</td>
@@ -35,6 +35,16 @@
     <td>{{ r.participants }}</td>
     <td>{{ r.total_grosz // 100 }},{{ "%02d"|format(r.total_grosz % 100) }} zł</td>
     <td>{{ reservation_statuses[r.status] }}</td>
+    <td>
+      <form class="actions" method="post" action="{{ url_for('payment_status', reservation_id=r.id) }}">
+        <select name="status" aria-label="Status płatności rezerwacji {{ r.id }}">
+          {% for value, label in payment_statuses.items() %}
+            <option value="{{ value }}" {% if r.payment_status == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+        <button type="submit">Zapisz</button>
+      </form>
+    </td>
     <td>
       {% if r.status != 'cancelled' %}
         <form class="actions" method="post" action="{{ url_for('reservation_status', reservation_id=r.id) }}">

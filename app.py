@@ -112,12 +112,14 @@ def logout():
 def admin():
     return render_template("admin.html", offers=db.list_offers(),
                            reservations=db.list_reservations(),
-                           reservation_statuses=RESERVATION_STATUSES)
+                           reservation_statuses=RESERVATION_STATUSES,
+                           payment_statuses=PAYMENT_STATUSES)
 
 
 RESERVATION_STATUSES = {
     "pending": "Zgłoszona", "confirmed": "Potwierdzona", "cancelled": "Anulowana",
 }
+PAYMENT_STATUSES = {"unpaid": "Nieopłacona", "deposit": "Zaliczka", "paid": "Opłacona"}
 
 
 @app.post("/admin/reservations/<int:reservation_id>/status")
@@ -128,6 +130,17 @@ def reservation_status(reservation_id):
         abort(400)
     if not db.update_reservation_status(reservation_id, status):
         flash("Nie można zmienić statusu tej rezerwacji.")
+    return redirect(url_for("admin"))
+
+
+@app.post("/admin/reservations/<int:reservation_id>/payment")
+@login_required
+def payment_status(reservation_id):
+    status = request.form.get("status")
+    if status not in PAYMENT_STATUSES:
+        abort(400)
+    if not db.update_payment_status(reservation_id, status):
+        abort(404)
     return redirect(url_for("admin"))
 
 
