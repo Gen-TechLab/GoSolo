@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <!-- this line makes the page fit phone screens (US01) -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GoSolo</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <header>
+    <a class="logo" href="{{ url_for('catalog') }}">GoSolo</a>
+    <nav>
+      <a href="{{ url_for('catalog') }}">Katalog</a>
+      {% if session.agent %}
+        <a href="{{ url_for('admin') }}">Panel agenta</a>
+        <a href="{{ url_for('logout') }}">Wyloguj</a>
+      {% else %}
+        <a href="{{ url_for('login') }}">Logowanie agenta</a>
+      {% endif %}
+    </nav>
+  </header>
+  <main>
+    {% for message in get_flashed_messages() %}
+      <p class="flash">{{ message }}</p>
+    {% endfor %}
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

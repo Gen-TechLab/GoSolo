@@ -1,0 +1,24 @@
+* { box-sizing: border-box; }
+body { margin: 0; font-family: system-ui, sans-serif; background: #f6f4ef; color: #1d2b2a; }
+header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center;
+         gap: .5rem; padding: 1rem; background: #1d4d4f; }
+header a { color: #fff; text-decoration: none; margin-left: 1rem; }
+header .logo { font-weight: bold; font-size: 1.3rem; margin: 0; }
+main { max-width: 960px; margin: 0 auto; padding: 1rem; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1rem; }
+.card { background: #fff; border-radius: 8px; padding: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,.1); }
+.card h2 { margin-top: 0; font-size: 1.15rem; }
+.form { display: flex; flex-direction: column; gap: .75rem; max-width: 400px; }
+.form label { display: flex; flex-direction: column; gap: .25rem; }
+.catalog-filters { margin-bottom: 1rem; }
+.form .checkbox { flex-direction: row; align-items: center; }
+input, select, button { font: inherit; padding: .5rem; }
+button, .button { background: #1d4d4f; color: #fff; border: 0; border-radius: 6px;
+                  padding: .5rem 1rem; cursor: pointer; text-decoration: none; display: inline-block; }
+button.danger { background: #b23a3a; }
+.table-wrap { overflow-x: auto; }  /* lets the table scroll sideways on phones */
+table { width: 100%; border-collapse: collapse; background: #fff; }
+th, td { padding: .5rem; border-bottom: 1px solid #ddd; text-align: left; }
+.actions { display: flex; gap: .5rem; align-items: center; }
+.error { color: #b23a3a; background: #fbeaea; padding: .5rem; border-radius: 6px; }
+.flash { background: #e3f1ec; padding: .5rem; border-radius: 6px; }
