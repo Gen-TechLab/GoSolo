@@ -23,6 +23,9 @@
     <p><b>Limit miejsc:</b> {{ o.seats }}</p>
     <p><b>Wolne miejsca:</b> {{ [o.available_seats, 0]|max }}</p>
     <p><b>Typ:</b> {{ o.trip_type }}</p>
+    {% if o.available_seats > 0 %}
+      <a class="button" href="{{ url_for('reserve_offer', offer_id=o.id) }}">Zarezerwuj</a>
+    {% endif %}
   </article>
   {% endfor %}
 </div>
