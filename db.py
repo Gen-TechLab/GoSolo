@@ -1,6 +1,7 @@
 """Database layer: everything that talks to SQLite lives here (US01, US03)."""
 import os
 import sqlite3
+from contextlib import closing
 
 # Path to the SQLite file. Tests change this to a temporary file.
 DB_PATH = os.environ.get("DATABASE", "gosolo.db")
@@ -72,7 +73,7 @@ def add_offer(data):
 
 def update_offer(offer_id, data):
     conn = get_conn()
-    conn.execute(
+    result = conn.execute(
         "UPDATE offers SET destination = :destination, start_date = :start_date, "
         "end_date = :end_date, price = :price, seats = :seats, trip_type = :trip_type "
         "WHERE id = :id",
@@ -80,6 +81,7 @@ def update_offer(offer_id, data):
     )
     conn.commit()
     conn.close()
+    return result.rowcount == 1
 
 
 def delete_offer(offer_id):
@@ -87,3 +89,14 @@ def delete_offer(offer_id):
     conn.execute("DELETE FROM offers WHERE id = ?", (offer_id,))
     conn.commit()
     conn.close()
+
+
+AVAILABLE_OFFERS = """
+    SELECT offers.*, seats AS available_seats
+    FROM offers
+"""
+
+
+def catalog_offers():
+    with closing(get_conn()) as conn:
+        return conn.execute(AVAILABLE_OFFERS + " ORDER BY start_date").fetchall()

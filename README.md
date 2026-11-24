@@ -73,7 +73,7 @@ Zasady współpracy: każda zmiana trafia do głównej gałęzi przez pull reque
 
 ## Uruchomienie lokalne i zakres implementacji
 
-Minimal Flask + SQLite application covering user stories US01–US03.
+Minimal Flask + SQLite application covering user stories US01–US04.
 
 ### Run locally
 
@@ -120,3 +120,6 @@ Run tests: `pytest`
 - Edit / delete: `/admin/<id>/edit`, `/admin/<id>/delete`
 - Validation: `validate_offer()` in `validation.py`
 - Saved in SQLite: `db.add_offer`, `db.update_offer`, `db.delete_offer` (file `gosolo.db`, survives restart)
+
+**US04 – Filtrowanie wycieczek**
+- Połącz filtry kierunku, przedziału dat, maksymalnej ceny za osobę i dostępności w katalogu.

@@ -1,6 +1,18 @@
 {% extends "base.html" %}
 {% block content %}
 <h1>Dostępne wycieczki</h1>
+<form class="form catalog-filters" method="get">
+  <label>Kierunek <input name="destination" value="{{ filters.get('destination', '') }}"></label>
+  <label>Wyjazd od <input type="date" name="start" value="{{ filters.get('start', '') }}"></label>
+  <label>Powrót do <input type="date" name="end" value="{{ filters.get('end', '') }}"></label>
+  <label>Maksymalna cena za osobę (zł)
+    <input type="number" name="max_price" min="0" step="0.01" value="{{ filters.get('max_price', '') }}">
+  </label>
+  <div><label class="checkbox"><input type="checkbox" name="available" value="1"
+    {% if filters.get('available') == '1' %}checked{% endif %}> Tylko wolne miejsca</label></div>
+  <div><button type="submit">Filtruj</button> <a href="{{ url_for('catalog') }}">Wyczyść filtry</a></div>
+</form>
+{% if error %}<p class="error">{{ error }}</p>{% endif %}
 {% if offers %}
 <div class="grid">
   {% for o in offers %}
@@ -9,6 +21,7 @@
     <p><b>Termin:</b> {{ o.start_date }} – {{ o.end_date }}</p>
     <p><b>Cena:</b> {{ "%.2f"|format(o.price) }} zł / os.</p>
     <p><b>Limit miejsc:</b> {{ o.seats }}</p>
+    <p><b>Wolne miejsca:</b> {{ [o.available_seats, 0]|max }}</p>
     <p><b>Typ:</b> {{ o.trip_type }}</p>
   </article>
   {% endfor %}

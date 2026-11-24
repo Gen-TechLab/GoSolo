@@ -62,3 +62,14 @@ def test_validation_rules():
     assert validate_offer({**GOOD, "end_date": "2027-07-01"})[1]  # return before departure
     assert validate_offer({**GOOD, "seats": "0"})[1]
     assert validate_offer({**GOOD, "trip_type": "kosmiczny"})[1]
+
+
+def test_catalog_combines_filters(client):
+    response = client.get("/", query_string={
+        "destination": "WŁOCHY", "start": "2027-04-01", "end": "2027-04-30",
+        "max_price": "2100", "available": "1",
+    })
+    page = response.get_data(as_text=True)
+    assert "Włochy - Rzym" in page
+    assert "Chorwacja - Split" not in page
+    assert "Słowacja - Tatry" not in page

@@ -1,5 +1,6 @@
 """Checks the data an agent types into the offer form (US03)."""
 from datetime import date
+from math import isfinite
 
 TRIP_TYPES = ["plażowy", "aktywny", "miejski"]
 
@@ -26,7 +27,7 @@ def validate_offer(form):
 
     try:
         price = float(price)
-        if price <= 0:
+        if not isfinite(price) or price <= 0:
             errors.append("Cena musi być większa od zera.")
     except ValueError:
         errors.append("Cena musi być liczbą.")

@@ -10,6 +10,8 @@ main { max-width: 960px; margin: 0 auto; padding: 1rem; }
 .card h2 { margin-top: 0; font-size: 1.15rem; }
 .form { display: flex; flex-direction: column; gap: .75rem; max-width: 400px; }
 .form label { display: flex; flex-direction: column; gap: .25rem; }
+.catalog-filters { margin-bottom: 1rem; }
+.form .checkbox { flex-direction: row; align-items: center; }
 input, select, button { font: inherit; padding: .5rem; }
 button, .button { background: #1d4d4f; color: #fff; border: 0; border-radius: 6px;
                   padding: .5rem 1rem; cursor: pointer; text-decoration: none; display: inline-block; }

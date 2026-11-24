@@ -1,5 +1,7 @@
 """GoSolo - Flask app. Run with:  python app.py"""
 import os
+from datetime import date
+from decimal import Decimal, InvalidOperation
 from functools import wraps
 
 from flask import Flask, abort, flash, redirect, render_template, request, session, url_for
@@ -29,8 +31,32 @@ def login_required(view):
 # ---------- US01: catalog for clients ----------
 @app.route("/")
 def catalog():
-    return render_template("catalog.html", offers=db.list_offers())
+    filters = request.args
+    destination = filters.get("destination", "").strip().casefold()
+    start = filters.get("start", "")
+    end = filters.get("end", "")
+    max_price = filters.get("max_price", "").strip()
+    try:
+        start = date.fromisoformat(start).isoformat() if start else ""
+        end = date.fromisoformat(end).isoformat() if end else ""
+        price = Decimal(max_price) if max_price else None
+        if (start and end and start > end) or (
+            price is not None and (not price.is_finite() or price < 0)
+        ):
+            raise ValueError
+    except (ValueError, InvalidOperation):
+        return render_template("catalog.html", offers=[], filters=filters,
+                               error="Podaj prawidłowy zakres dat i cenę."), 400
 
+    offers = [
+        offer for offer in db.catalog_offers()
+        if destination in offer["destination"].casefold()
+        and (not start or offer["start_date"] >= start)
+        and (not end or offer["end_date"] <= end)
+        and (price is None or Decimal(str(offer["price"])) <= price)
+        and (filters.get("available") != "1" or offer["available_seats"] > 0)
+    ]
+    return render_template("catalog.html", offers=offers, filters=filters)
 
 
 
