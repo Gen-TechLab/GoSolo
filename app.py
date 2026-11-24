@@ -110,7 +110,25 @@ def logout():
 @app.route("/admin")
 @login_required
 def admin():
-    return render_template("admin.html", offers=db.list_offers())
+    return render_template("admin.html", offers=db.list_offers(),
+                           reservations=db.list_reservations(),
+                           reservation_statuses=RESERVATION_STATUSES)
+
+
+RESERVATION_STATUSES = {
+    "pending": "Zgłoszona", "confirmed": "Potwierdzona", "cancelled": "Anulowana",
+}
+
+
+@app.post("/admin/reservations/<int:reservation_id>/status")
+@login_required
+def reservation_status(reservation_id):
+    status = request.form.get("status")
+    if status not in ("confirmed", "cancelled"):
+        abort(400)
+    if not db.update_reservation_status(reservation_id, status):
+        flash("Nie można zmienić statusu tej rezerwacji.")
+    return redirect(url_for("admin"))
 
 
 @app.route("/admin/new", methods=["GET", "POST"])

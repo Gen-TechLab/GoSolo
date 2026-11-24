@@ -73,7 +73,7 @@ Zasady współpracy: każda zmiana trafia do głównej gałęzi przez pull reque
 
 ## Uruchomienie lokalne i zakres implementacji
 
-Minimal Flask + SQLite application covering user stories US01–US05.
+Minimal Flask + SQLite application covering user stories US01–US06.
 
 ### Run locally
 
@@ -126,3 +126,6 @@ Run tests: `pytest`
 
 **US05 – Rezerwacja wycieczki**
 - W katalogu wybierz ofertę i liczbę uczestników, aby zgłosić rezerwację.
+
+**US06 – Obsługa rezerwacji**
+- W panelu agenta potwierdź lub anuluj zgłoszenie. Anulowanie zwalnia miejsca.
