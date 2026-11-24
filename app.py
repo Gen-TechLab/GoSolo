@@ -59,6 +59,32 @@ def catalog():
     return render_template("catalog.html", offers=offers, filters=filters)
 
 
+@app.route("/offers/<int:offer_id>/reserve", methods=["GET", "POST"])
+def reserve_offer(offer_id):
+    offer = db.bookable_offer(offer_id)
+    if offer is None:
+        abort(404)
+    error = None
+    if request.method == "POST":
+        try:
+            participants = int(request.form.get("participants", ""))
+        except ValueError:
+            participants = 0
+        if participants < 1:
+            error = "Podaj dodatnią liczbę uczestników."
+        else:
+            reservation = db.create_reservation(offer_id, participants)
+            if reservation is not None:
+                reservation_id, total = reservation
+                flash(f"Zgłoszono rezerwację nr {reservation_id}. "
+                      f"Łączna cena: {total // 100},{total % 100:02d} zł.")
+                return redirect(url_for("catalog"))
+            offer = db.bookable_offer(offer_id)
+            if offer is None:
+                abort(404)
+            error = "Brak wystarczającej liczby wolnych miejsc."
+    return render_template("reservation_form.html", offer=offer, error=error), 400 if error else 200
+
 
 # ---------- US02: agent login / logout ----------
 @app.route("/login", methods=["GET", "POST"])
@@ -110,10 +136,11 @@ def edit_offer(offer_id):
     data, errors = dict(offer), []
     if request.method == "POST":
         data, errors = validate_offer(request.form)
-        if not errors:
-            db.update_offer(offer_id, data)
+        if not errors and db.update_offer(offer_id, data):
             flash("Zapisano zmiany.")
             return redirect(url_for("admin"))
+        if not errors:
+            errors.append("Limit miejsc nie może być mniejszy od liczby zarezerwowanych miejsc.")
     return render_template("offer_form.html", offer=data, errors=errors,
                            trip_types=TRIP_TYPES, title="Edytuj ofertę")
 
@@ -121,8 +148,12 @@ def edit_offer(offer_id):
 @app.route("/admin/<int:offer_id>/delete", methods=["POST"])
 @login_required
 def delete_offer(offer_id):
-    db.delete_offer(offer_id)
-    flash("Usunięto ofertę.")
+    if db.get_offer(offer_id) is None:
+        abort(404)
+    if db.delete_offer(offer_id):
+        flash("Usunięto ofertę.")
+    else:
+        flash("Nie można usunąć oferty powiązanej z rezerwacjami.")
     return redirect(url_for("admin"))
 
 

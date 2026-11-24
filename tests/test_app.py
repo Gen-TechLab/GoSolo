@@ -73,3 +73,14 @@ def test_catalog_combines_filters(client):
     assert "Włochy - Rzym" in page
     assert "Chorwacja - Split" not in page
     assert "Słowacja - Tatry" not in page
+
+
+def test_reservation_enforces_capacity_and_calculates_total(client):
+    offer = db.get_offer(1)
+    path = "/offers/1/reserve"
+    assert client.post(path, data={"participants": offer["seats"] + 1}).status_code == 400
+    response = client.post(path, data={"participants": offer["seats"]}, follow_redirects=True)
+    assert "58000,00 zł" in response.get_data(as_text=True)
+    assert client.post(path, data={"participants": 1}).status_code == 400
+    assert db.bookable_offer(1)["available_seats"] == 0
+    assert "Chorwacja - Split" not in client.get("/?available=1").get_data(as_text=True)
