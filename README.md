@@ -1,129 +1,53 @@
-# GoSolo — karta projektu
+# GoSolo
 
-Aplikacja internetowa dla biura podróży
+Aplikacja Flask i SQLite dla biura podróży. Klient przegląda oferty i zgłasza rezerwacje, a agent je potwierdza lub anuluje. Wymagany Python 3.12 lub nowszy.
 
 ## Zespół
 
-- **Nazwa zespołu:** [Gen-TechLab](https://github.com/Gen-TechLab)
-- **Rostyslav Volovets** — GitHub: **[Ros-Gaben](https://github.com/Ros-Gaben)**
-- **Bohdan Moroz** — GitHub: **[SebastianFarki](https://github.com/SebastianFarki)**
-- **Branża:** Biuro Podróży
-- **Repozytorium:** <https://github.com/Gen-TechLab/GoSolo>
+- [Rostyslav Volovets](https://github.com/Ros-Gaben) — struktura projektu, baza danych i katalog ofert.
+- [Bohdan Moroz](https://github.com/SebastianFarki) — rezerwacje, testy i dokumentacja.
 
-## Problem i użytkownicy
+## Uruchomienie i demonstracja
 
-**Problem.** Małe biuro podróży prowadzi oferty, dane klientów i rezerwacje w arkuszach kalkulacyjnych, e-mailach i notatkach. Prowadzi to do błędów: rezerwacji ponad limit miejsc, gubienia danych klientów, trudności ze znalezieniem pasującej oferty oraz braku szybkiego podglądu, ile miejsc zostało i które rezerwacje są opłacone. Klienci z kolei trudno dobierają wyjazd do swojego nastroju, obawiają się podwyżki ceny w trakcie decyzji i nie wiedzą, co spakować.
+### Uruchomienie w Windows (PowerShell)
 
-**Użytkownicy.**
+W katalogu repozytorium wykonaj:
 
-- **Klient biura** — przegląda ofertę w przeglądarce (na komputerze lub telefonie), dobiera wyjazd do nastroju, zgłasza rezerwację, może zamrozić cenę i korzysta z listy rzeczy do spakowania.
-- **Agent biura podróży** (panel zarządzania; w małym biurze także właściciel) — dodaje oferty, obsługuje klientów, potwierdza i anuluje rezerwacje.
-
-Aplikacja działa w przeglądarce i dostosowuje się do ekranu telefonu; osobna aplikacja mobilna nie jest planowana.
-
-## Główne funkcje
-
-1. **Oferty wycieczek** — katalog dla klientów i panel agenta z prostym logowaniem. Oferta ma kierunek, termin, cenę za osobę, limit miejsc, typ wyjazdu (plażowy, aktywny, miejski) i tagi nastroju.
-2. **Rezerwacje i klienci** — klient zgłasza rezerwację na stronie (oferta, liczba osób), system sprawdza wolne miejsca i liczy cenę. Agent potwierdza lub anuluje rezerwację i ustawia status płatności (nieopłacona, zaliczka, opłacona).
-3. **Dobór wycieczki według nastroju (AI)** — filtry (kierunek, termin, cena, dostępność) oraz opis nastroju własnymi słowami, np. „cichy relaks nad morzem do 3000 zł”. Model językowy (LLM, przez API) wybiera z katalogu biura kilka pasujących ofert i krótko uzasadnia wybór, a aplikacja sprawdza, czy wskazane oferty istnieją w bazie. Gdy API nie działa, oferty są sortowane według tagów nastroju.
-4. **Zamrożenie ceny (Price Freeze)** — klient może na 48 godzin zamrozić cenę i zablokować miejsca. Późniejsza zmiana ceny oferty nie dotyczy zamrożonej rezerwacji, a po upływie czasu miejsca wracają do puli.
-5. **Asystent pakowania** — dla wybranej wycieczki model językowy tworzy listę rzeczy na podstawie typu wyjazdu, klimatu w terminie podróży (średnie temperatury i opady zapisane dla kierunku) i wskazówek dla kraju, np. stroju w miejscach kultu. Klient odhacza pozycje w aplikacji.
-
-## Zakres MVP
-
-MVP obejmuje funkcje 1–3: katalog z filtrami i doborem według nastroju (model językowy, a przy jego awarii tagi), zgłaszanie rezerwacji oraz panel agenta. Aplikacja działa w przeglądarce (także na telefonie), a dane są trwale zapisywane w bazie SQLite.
-
-MVP uznajemy za gotowe, gdy:
-
-- klient może przeglądać oferty, filtrować je i dobierać według nastroju oraz zgłosić rezerwację, a agent po zalogowaniu zarządza ofertami oraz potwierdza lub anuluje rezerwacje,
-- system nie pozwala zarezerwować więcej miejsc, niż zostało w ofercie,
-- dane przetrwają restart aplikacji,
-- kluczowa logika (wolne miejsca, cena, anulowanie) jest pokryta testami pytest,
-- aplikacja jest wdrożona online, a README zawiera adres i instrukcję uruchomienia lokalnego.
-
-Funkcje 4 (zamrożenie ceny) i 5 (asystent pakowania) realizujemy po MVP, w tej kolejności i tylko wtedy, gdy MVP działa i jest przetestowane.
-
-## Poza zakresem
-
-- natywna aplikacja mobilna (strona ma działać na telefonie w przeglądarce) oraz konto klienta z historią zamówień,
-- Wiele ról i uprawnień (poza jednym prostym kontem agenta),
-- Integracje zewnętrzne (linie lotnicze, hotele, e-mail, SMS, etc),
-- generowanie faktur i umów w PDF,
-- przechowywanie danych wrażliwych (PESEL, numery paszportów),
-- wiele walut i języków oraz pakiety złożone z wielu elementów (lot, hotel, transfer),
-- prognoza tłumów w atrakcjach (brak wiarygodnych, darmowych danych) oraz trenowanie własnych modeli.
-
-## Stos technologiczny
-
-- **Język:** Python 3.12 lub nowszy
-- **Interfejs:** aplikacja internetowa (backend w Pythonie, HTML i CSS, widok dopasowany do telefonu); framework i hosting wybierzemy w pierwszych tygodniach pracy
-- **Baza danych:** SQLite (moduł `sqlite3` z biblioteki standardowej)
-- **Sztuczna inteligencja:** model językowy (LLM) wywoływany przez API; dostawcę wybierzemy w pierwszych tygodniach pracy, klucz API trzymamy w zmiennej środowiskowej (poza repozytorium), a w testach model zastępujemy atrapą
-- **Testy:** pytest
-- **Kontrola wersji:** Git i GitHub (gałęzie, pull requesty, Issues)
-- **IDE:** VS Code
-- **Środowisko:** `venv` i `requirements.txt`
-
-## Podział ról
-
-- **Rostyslav Volovets — ****Architekt projektu**, **pomysłodawca**** i programista.** Koordynuje wizję i dba o zachowanie ram MVP, odpowiada za strukturę projektu, schemat bazy danych, moduł modelu językowego, funkcje 1 i 3 (po MVP także 5) oraz wdrożenie aplikacji online. Przegląda pull requesty Bohdana.
-- **Bohdan Moroz — programista, testy i dokumentacja.** Odpowiada za funkcję 2 (po MVP także 4), konfigurację pytest oraz dokumentację. Przegląda pull requesty Rostyslava.
-
-Zasady współpracy: każda zmiana trafia do głównej gałęzi przez pull request przeglądany przez drugą osobę, każdy pisze testy do własnych modułów, a my potrafimy wyjaśnić cały oddany kod. Dane przykładowe (oferty, klimat i wskazówki dla krajów) przygotowujemy wspólnie.
-
-## Uruchomienie lokalne i zakres implementacji
-
-Minimal Flask + SQLite application covering user stories US01–US07.
-
-### Run locally
-
-```bash
-python -m venv venv
-# Windows: venv\Scripts\activate     macOS/Linux: source venv/bin/activate
-pip install -r requirements.txt
-python app.py
+```powershell
+py -3 -m venv venv
+.\venv\Scripts\python.exe -m pip install -r requirements.txt
+.\venv\Scripts\python.exe -m src.app
 ```
 
-Open http://127.0.0.1:5000
+### Uruchomienie w macOS i Linux
 
-Agent login: **agent / agent123** (change with env vars `AGENT_LOGIN`, `AGENT_PASSWORD`).
+```bash
+python3 -m venv venv
+./venv/bin/python -m pip install -r requirements.txt
+./venv/bin/python -m src.app
+```
 
-Run tests: `pytest`
+Otwórz <http://127.0.0.1:5000>. Przy pierwszym uruchomieniu aplikacja tworzy plik `gosolo.db` i dodaje przykładowe oferty.
 
-### Files
+### Ścieżka MVP — od katalogu do potwierdzenia rezerwacji
 
-| File | What it does |
+1. W katalogu wybierz **Chorwacja - Split** i kliknij **Zarezerwuj**.
+2. Na ekranie logowania wybierz rejestrację i utwórz konto klienta. Na potrzeby demonstracji użyj np. adresu `klient@example.com` i hasła `Test1234`.
+3. Wróć do oferty, wpisz **2** uczestników i kliknij **Zgłoś rezerwację**. W sekcji **Moje rezerwacje** sprawdź status `pending` i cenę **5800,00 zł**.
+4. Wyloguj się i zaloguj jako agent (`agent` / `agent123`). W panelu agenta znajdź zgłoszenie i kliknij **Potwierdź**.
+5. Zatrzymaj serwer skrótem **Ctrl+C** i uruchom go ponownie tym samym poleceniem. Po zalogowaniu na konto klienta sprawdź, czy w sekcji **Moje rezerwacje** nadal widnieje status `confirmed`.
+
+Domyślne dane agenta służą do uruchomienia lokalnego. Można je zmienić zmiennymi środowiskowymi `AGENT_LOGIN` i `AGENT_PASSWORD`.
+
+Testy uruchom w katalogu repozytorium poleceniem `.\venv\Scripts\python.exe -m pytest` w Windows albo `./venv/bin/python -m pytest` w macOS i Linux.
+
+### Struktura projektu
+
+| Plik lub katalog | Odpowiedzialność |
 |---|---|
-| `app.py` | Flask routes (pages) + login check |
-| `db.py` | SQLite: create table, sample data, add/edit/delete offers |
-| `validation.py` | Checks the offer form data |
-| `templates/` | HTML pages (Jinja) |
-| `static/style.css` | Styles, works on phone and desktop |
-| `tests/` | pytest tests |
-
-### Where each requirement is
-
-**US01 – Katalog wycieczek**
-- List of trips: route `/` → `catalog()` in `app.py`, page `templates/catalog.html`
-- Each offer has destination, dates, price, seat limit, trip type: table `offers` in `db.py`
-- Data from SQLite: `db.list_offers()`
-- Phone + desktop: `<meta name="viewport">` in `base.html` + CSS grid in `style.css`
-
-**US02 – Logowanie agenta**
-- Correct login/password → `/login` sets `session["agent"]`
-- Wrong data → error "Niepoprawny login lub hasło."
-- Panel blocked for guests → `@login_required` decorator redirects to `/login`
-- Logout → `/logout` clears the session
-
-**US03 – Zarządzanie ofertami**
-- Add: `/admin/new`
-- Edit / delete: `/admin/<id>/edit`, `/admin/<id>/delete`
-- Validation: `validate_offer()` in `validation.py`
-- Saved in SQLite: `db.add_offer`, `db.update_offer`, `db.delete_offer` (file `gosolo.db`, survives restart)
-
-**US04 – Filtrowanie wycieczek**
-- Połącz filtry kierunku, przedziału dat, maksymalnej ceny za osobę i dostępności w katalogu.
-
-**US05–US07 – Rezerwacje i płatności**
-- Z katalogu wybierz ofertę i liczbę uczestników. Aplikacja zapisuje zgłoszenie oraz cenę całkowitą i zajmuje miejsca.
-- W panelu agenta potwierdź lub anuluj zgłoszenie i ustaw status płatności. Anulowanie zwalnia miejsca.
+| `src/app.py` | Interfejs HTTP, sesje i obsługa formularzy |
+| `src/db.py` | Schemat SQLite, dane przykładowe, zapis ofert i rezerwacji oraz kontrola dostępności miejsc |
+| `src/validation.py` | Reguły walidacji formularzy ofert i rejestracji |
+| `src/templates/` i `src/static/` | Szablony HTML i style |
+| `tests/` | Testy pytest z odrębną bazą dla każdego testu aplikacji |
+| `requirements.txt` i `.gitignore` | Zależności oraz wykluczenia lokalnych plików, w tym `venv/` i bazy |
