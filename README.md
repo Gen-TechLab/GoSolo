@@ -73,7 +73,7 @@ Zasady współpracy: każda zmiana trafia do głównej gałęzi przez pull reque
 
 ## Uruchomienie lokalne i zakres implementacji
 
-Minimal Flask + SQLite application covering user stories US01–US06.
+Minimal Flask + SQLite application covering user stories US01–US07.
 
 ### Run locally
 
@@ -124,8 +124,6 @@ Run tests: `pytest`
 **US04 – Filtrowanie wycieczek**
 - Połącz filtry kierunku, przedziału dat, maksymalnej ceny za osobę i dostępności w katalogu.
 
-**US05 – Rezerwacja wycieczki**
-- W katalogu wybierz ofertę i liczbę uczestników, aby zgłosić rezerwację.
-
-**US06 – Obsługa rezerwacji**
-- W panelu agenta potwierdź lub anuluj zgłoszenie. Anulowanie zwalnia miejsca.
+**US05–US07 – Rezerwacje i płatności**
+- Z katalogu wybierz ofertę i liczbę uczestników. Aplikacja zapisuje zgłoszenie oraz cenę całkowitą i zajmuje miejsca.
+- W panelu agenta potwierdź lub anuluj zgłoszenie i ustaw status płatności. Anulowanie zwalnia miejsca.

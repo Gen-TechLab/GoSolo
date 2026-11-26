@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}Rejestracja — GoSolo{% endblock %}
+{% block content %}
+<div class="auth-card">
+  <p class="eyebrow">Konto klienta</p>
+  <h1>Rejestracja</h1>
+  <p class="muted">Wystarczy adres e-mail i hasło — bez potwierdzania wiadomości e-mail.</p>
+
+  {% for e in errors %}
+    <p class="error">{{ e }}</p>
+  {% endfor %}
+
+  <form method="post" class="form" id="register-form">
+    <label>Adres e-mail
+      <input type="email" name="email" autocomplete="email" value="{{ form_data.get('email', '') }}" required>
+    </label>
+
+    <div class="field-group">
+      <label for="reg-password">Hasło</label>
+      <div class="password-box">
+        <input id="reg-password" type="password" name="password" autocomplete="new-password" minlength="6" required>
+        <button type="button" class="toggle-pass" data-target="reg-password" aria-label="Pokaż lub ukryj hasło" title="Pokaż / ukryj hasło">👁️</button>
+      </div>
+      <ul class="pass-rules" aria-live="polite">
+        <li id="rule-len" class="rule-invalid">Co najmniej 6 znaków</li>
+        <li id="rule-letter" class="rule-invalid">Przynajmniej 1 litera</li>
+        <li id="rule-digit" class="rule-invalid">Przynajmniej 1 cyfra</li>
+      </ul>
+    </div>
+
+    <div class="field-group">
+      <label for="reg-password-confirm">Powtórz hasło</label>
+      <div class="password-box">
+        <input id="reg-password-confirm" type="password" name="password_confirm" autocomplete="new-password" minlength="6" required>
+        <button type="button" class="toggle-pass" data-target="reg-password-confirm" aria-label="Pokaż lub ukryj powtórzone hasło" title="Pokaż / ukryj hasło">👁️</button>
+      </div>
+      <ul class="pass-rules" aria-live="polite">
+        <li id="rule-match" class="rule-invalid">Hasła są identyczne</li>
+      </ul>
+    </div>
+
+    <button type="submit">Utwórz konto</button>
+  </form>
+
+  <p class="auth-switch">Masz już konto? <a href="{{ url_for('login') }}">Zaloguj się</a></p>
+</div>
+
+<script>
+(() => {
+  document.querySelectorAll(".toggle-pass").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const input = document.getElementById(btn.dataset.target);
+      if (!input) return;
+      const isHidden = input.type === "password";
+      input.type = isHidden ? "text" : "password";
+      btn.textContent = isHidden ? "🙈" : "👁️";
+    });
+  });
+
+  const passInput = document.getElementById("reg-password");
+  const confirmInput = document.getElementById("reg-password-confirm");
+  const ruleLen = document.getElementById("rule-len");
+  const ruleLetter = document.getElementById("rule-letter");
+  const ruleDigit = document.getElementById("rule-digit");
+  const ruleMatch = document.getElementById("rule-match");
+
+  const setRule = (el, ok) => {
+    el.classList.toggle("rule-valid", ok);
+    el.classList.toggle("rule-invalid", !ok);
+  };
+
+  const updateRules = () => {
+    const val = passInput.value || "";
+    const conf = confirmInput.value || "";
+    setRule(ruleLen, val.length >= 6);
+    setRule(ruleLetter, /\p{L}/u.test(val));
+    setRule(ruleDigit, /\d/.test(val));
+    setRule(ruleMatch, val.length > 0 && val === conf);
+  };
+
+  passInput.addEventListener("input", updateRules);
+  confirmInput.addEventListener("input", updateRules);
+})();
+</script>
+{% endblock %}

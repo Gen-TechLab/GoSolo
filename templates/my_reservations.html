@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Moje rezerwacje — GoSolo{% endblock %}
+{% block content %}
+<h1>Moje rezerwacje</h1>
+{% if reservations %}
+  <div class="grid">
+    {% for r in reservations %}
+      <article class="card">
+        <h3>Rezerwacja nr {{ r.id }}</h3>
+        <p class="meta"><b>Trasa:</b> {{ r.origin }} → {{ r.destination }}</p>
+        <p class="meta"><b>Termin:</b> {{ r.start_date }} – {{ r.end_date }}</p>
+        <p class="meta"><b>Uczestnicy:</b> {{ r.participants }}</p>
+        <p class="meta"><b>Kwota:</b> {{ r.total_grosz // 100 }},{{ "%02d"|format(r.total_grosz % 100) }} zł</p>
+        <p class="meta"><b>Status:</b> {{ r.status }} | <b>Płatność:</b> {{ r.payment_status }}</p>
+      </article>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="empty-box">
+    <p>Nie masz jeszcze żadnych rezerwacji.</p>
+    <a class="button" href="{{ url_for('catalog') }}">Przeglądaj wycieczki</a>
+  </div>
+{% endif %}
+{% endblock %}

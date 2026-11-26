@@ -2,29 +2,66 @@
 <html lang="pl">
 <head>
   <meta charset="utf-8">
-  <!-- this line makes the page fit phone screens (US01) -->
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>GoSolo</title>
+  <title>{% block title %}GoSolo{% endblock %}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-  <header>
-    <a class="logo" href="{{ url_for('catalog') }}">GoSolo</a>
-    <nav>
-      <a href="{{ url_for('catalog') }}">Katalog</a>
-      {% if session.agent %}
-        <a href="{{ url_for('admin') }}">Panel agenta</a>
-        <a href="{{ url_for('logout') }}">Wyloguj</a>
-      {% else %}
-        <a href="{{ url_for('login') }}">Logowanie agenta</a>
-      {% endif %}
-    </nav>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="logo" href="{{ url_for('catalog') }}">GoSolo</a>
+      <nav class="nav" aria-label="Główna nawigacja">
+        <a href="{{ url_for('catalog') }}">Wycieczki</a>
+        {% if session.get("user_id") %}
+          <a href="{{ url_for('my_reservations') }}">Moje rezerwacje</a>
+        {% endif %}
+        {% if session.get("agent") %}
+          <a href="{{ url_for('admin') }}">Panel agenta</a>
+        {% endif %}
+        {% if session.get("user_id") or session.get("agent") %}
+          <span class="nav-user">{{ session.get("user_email") or "agent" }}</span>
+          <a class="nav-btn-outline" href="{{ url_for('logout') }}">Wyloguj</a>
+        {% else %}
+          <a href="{{ url_for('login') }}">Logowanie</a>
+          <a class="nav-btn-solid" href="{{ url_for('register') }}">Rejestracja</a>
+        {% endif %}
+      </nav>
+    </div>
   </header>
-  <main>
+  <main class="container">
     {% for message in get_flashed_messages() %}
       <p class="flash">{{ message }}</p>
     {% endfor %}
     {% block content %}{% endblock %}
   </main>
+  <footer class="site-footer">
+    <div class="container">GoSolo — Twoja podróż zaczyna się tutaj.</div>
+  </footer>
+  <script>
+    document.querySelectorAll(".smart-date").forEach((el) => {
+      const activateDate = () => {
+        if (el.type !== "date") {
+          el.type = "date";
+        }
+        if (el.showPicker) {
+          requestAnimationFrame(() => {
+            try { el.showPicker(); } catch (_) {}
+          });
+        }
+      };
+
+      el.addEventListener("pointerdown", activateDate);
+      el.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " " || e.key === "ArrowDown") {
+          activateDate();
+        }
+      });
+      el.addEventListener("blur", () => {
+        if (!el.value) {
+          el.type = "text";
+        }
+      });
+    });
+  </script>
 </body>
 </html>

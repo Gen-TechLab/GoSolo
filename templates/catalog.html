@@ -1,35 +1,109 @@
 {% extends "base.html" %}
+{% block title %}Wycieczki — GoSolo{% endblock %}
 {% block content %}
-<h1>Dostępne wycieczki</h1>
-<form class="form catalog-filters" method="get">
-  <label>Kierunek <input name="destination" value="{{ filters.get('destination', '') }}"></label>
-  <label>Wyjazd od <input type="date" name="start" value="{{ filters.get('start', '') }}"></label>
-  <label>Powrót do <input type="date" name="end" value="{{ filters.get('end', '') }}"></label>
-  <label>Maksymalna cena za osobę (zł)
-    <input type="number" name="max_price" min="0" step="0.01" value="{{ filters.get('max_price', '') }}">
-  </label>
-  <div><label class="checkbox"><input type="checkbox" name="available" value="1"
-    {% if filters.get('available') == '1' %}checked{% endif %}> Tylko wolne miejsca</label></div>
-  <div><button type="submit">Filtruj</button> <a href="{{ url_for('catalog') }}">Wyczyść filtry</a></div>
-</form>
-{% if error %}<p class="error">{{ error }}</p>{% endif %}
-{% if offers %}
-<div class="grid">
-  {% for o in offers %}
-  <article class="card">
-    <h2>{{ o.destination }}</h2>
-    <p><b>Termin:</b> {{ o.start_date }} – {{ o.end_date }}</p>
-    <p><b>Cena:</b> {{ "%.2f"|format(o.price) }} zł / os.</p>
-    <p><b>Limit miejsc:</b> {{ o.seats }}</p>
-    <p><b>Wolne miejsca:</b> {{ [o.available_seats, 0]|max }}</p>
-    <p><b>Typ:</b> {{ o.trip_type }}</p>
-    {% if o.available_seats > 0 %}
-      <a class="button" href="{{ url_for('reserve_offer', offer_id=o.id) }}">Zarezerwuj</a>
-    {% endif %}
-  </article>
-  {% endfor %}
-</div>
-{% else %}
-<p>Brak dostępnych wycieczek.</p>
+<section class="hero">
+  <p class="hero-kicker">Podróżuj po swojemu</p>
+  <h1>Znajdź swój następny kierunek</h1>
+  <p class="hero-sub">Sprawdzone wycieczki, przejrzyste ceny i rezerwacja bez zbędnych formalności.</p>
+</section>
+
+{% if popular %}
+<section class="section" aria-labelledby="popular-title">
+  <div class="section-head">
+    <div>
+      <p class="eyebrow">Na czasie</p>
+      <h2 id="popular-title">Najpopularniejsze</h2>
+    </div>
+  </div>
+  <div class="grid">
+    {% for o in popular %}
+      <article class="card card-popular">
+        <div class="card-top">
+          <span class="badge badge-popular">Najpopularniejsze</span>
+          <span class="badge badge-type">{{ o.trip_type }}</span>
+        </div>
+        <h3>{{ o.origin }} → {{ o.destination }}</h3>
+        <p class="meta"><b>Termin:</b> {{ o.start_date }} – {{ o.end_date }}</p>
+        <p class="meta"><b>Cena:</b> {{ "%.2f"|format(o.price) }} zł / os.</p>
+        <p class="meta"><b>Wolne miejsca:</b> {{ [o.available_seats, 0]|max }} / {{ o.seats }}</p>
+        {% if o.available_seats > 0 %}
+          <a class="button" href="{{ url_for('reserve_offer', offer_id=o.id) }}">Zarezerwuj</a>
+        {% else %}
+          <span class="muted">Brak wolnych miejsc</span>
+        {% endif %}
+      </article>
+    {% endfor %}
+  </div>
+</section>
 {% endif %}
+
+<section class="section" aria-labelledby="catalog-title">
+  <div class="section-head">
+    <div>
+      <p class="eyebrow">Katalog podróży</p>
+      <h2 id="catalog-title">Dostępne wycieczki</h2>
+    </div>
+  </div>
+
+  <form class="filter-panel" method="get">
+    <div class="filter-grid">
+      <label>Skąd
+        <input name="origin" placeholder="np. Warszawa" value="{{ filters.get('origin', '') }}">
+      </label>
+      <label>Dokąd
+        <input name="destination" placeholder="np. Włochy" value="{{ filters.get('destination', '') }}">
+      </label>
+      <label>Wyjazd od
+        <input class="smart-date" type="{{ 'date' if filters.get('start') else 'text' }}"
+               name="start" placeholder="Wybierz datę" value="{{ filters.get('start', '') }}">
+      </label>
+      <label>Powrót do
+        <input class="smart-date" type="{{ 'date' if filters.get('end') else 'text' }}"
+               name="end" placeholder="Wybierz datę" value="{{ filters.get('end', '') }}">
+      </label>
+      <label>Maksymalna cena za osobę (zł)
+        <input type="number" name="max_price" min="0" step="500" value="{{ filters.get('max_price', '') }}">
+      </label>
+      <label class="checkbox-field">
+        <input type="checkbox" name="available" value="1"
+          {% if filters.get('available') == '1' %}checked{% endif %}>
+        <span>Tylko wolne miejsca</span>
+      </label>
+    </div>
+    <div class="filter-actions">
+      <button type="submit">Filtruj</button>
+      <a class="link-muted" href="{{ url_for('catalog') }}">Wyczyść filtry</a>
+    </div>
+  </form>
+
+  {% if error %}<p class="error">{{ error }}</p>{% endif %}
+
+  {% if offers %}
+    <div class="grid">
+      {% for o in offers %}
+        <article class="card">
+          <div class="card-top">
+            <span class="badge badge-type">{{ o.trip_type }}</span>
+            {% if o.available_seats > 0 %}
+              <span class="badge badge-ok">Wolne miejsca: {{ o.available_seats }}</span>
+            {% else %}
+              <span class="badge badge-full">Brak miejsc</span>
+            {% endif %}
+          </div>
+          <h3>{{ o.origin }} → {{ o.destination }}</h3>
+          <p class="meta"><b>Termin:</b> {{ o.start_date }} – {{ o.end_date }}</p>
+          <p class="meta"><b>Cena:</b> {{ "%.2f"|format(o.price) }} zł / os.</p>
+          <p class="meta"><b>Limit miejsc:</b> {{ o.seats }}</p>
+          {% if o.available_seats > 0 %}
+            <a class="button" href="{{ url_for('reserve_offer', offer_id=o.id) }}">Zarezerwuj</a>
+          {% endif %}
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-box">
+      <p>Brak dostępnych wycieczek spełniających kryteria.</p>
+    </div>
+  {% endif %}
+</section>
 {% endblock %}
