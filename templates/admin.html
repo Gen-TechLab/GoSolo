@@ -1,65 +1,85 @@
 {% extends "base.html" %}
+{% block title %}Panel agenta — GoSolo{% endblock %}
 {% block content %}
 <h1>Panel agenta</h1>
 <p><a class="button" href="{{ url_for('new_offer') }}">+ Dodaj ofertę</a></p>
+
 <div class="table-wrap">
-<table>
-  <tr><th>Kierunek</th><th>Termin</th><th>Cena</th><th>Miejsca</th><th>Typ</th><th></th></tr>
-  {% for o in offers %}
-  <tr>
-    <td>{{ o.destination }}</td>
-    <td>{{ o.start_date }} – {{ o.end_date }}</td>
-    <td>{{ "%.2f"|format(o.price) }} zł</td>
-    <td>{{ o.seats }}</td>
-    <td>{{ o.trip_type }}</td>
-    <td class="actions">
-      <a href="{{ url_for('edit_offer', offer_id=o.id) }}">Edytuj</a>
-      <form method="post" action="{{ url_for('delete_offer', offer_id=o.id) }}"
-            onsubmit="return confirm('Usunąć ofertę?');">
-        <button type="submit" class="danger">Usuń</button>
-      </form>
-    </td>
-  </tr>
-  {% endfor %}
-</table>
+  <table>
+    <tr>
+      <th>Trasa (Skąd → Dokąd)</th>
+      <th>Termin</th>
+      <th>Cena</th>
+      <th>Miejsca</th>
+      <th>Typ</th>
+      <th>Akcje</th>
+    </tr>
+    {% for o in offers %}
+      <tr>
+        <td>{{ o.origin }} → {{ o.destination }}</td>
+        <td>{{ o.start_date }} – {{ o.end_date }}</td>
+        <td>{{ "%.2f"|format(o.price) }} zł</td>
+        <td>{{ o.seats }}</td>
+        <td>{{ o.trip_type }}</td>
+        <td class="actions">
+          <a href="{{ url_for('edit_offer', offer_id=o.id) }}">Edytuj</a>
+          <form method="post" action="{{ url_for('delete_offer', offer_id=o.id) }}"
+                onsubmit="return confirm('Usunąć ofertę?');">
+            <button type="submit" class="danger">Usuń</button>
+          </form>
+        </td>
+      </tr>
+    {% endfor %}
+  </table>
 </div>
+
 <h2>Rezerwacje</h2>
 {% if reservations %}
-<div class="table-wrap">
-<table>
-  <tr><th>Nr</th><th>Kierunek</th><th>Uczestnicy</th><th>Kwota</th><th>Status</th><th>Płatność</th><th>Akcje</th></tr>
-  {% for r in reservations %}
-  <tr>
-    <td>{{ r.id }}</td>
-    <td>{{ r.destination }}</td>
-    <td>{{ r.participants }}</td>
-    <td>{{ r.total_grosz // 100 }},{{ "%02d"|format(r.total_grosz % 100) }} zł</td>
-    <td>{{ reservation_statuses[r.status] }}</td>
-    <td>
-      <form class="actions" method="post" action="{{ url_for('payment_status', reservation_id=r.id) }}">
-        <select name="status" aria-label="Status płatności rezerwacji {{ r.id }}">
-          {% for value, label in payment_statuses.items() %}
-            <option value="{{ value }}" {% if r.payment_status == value %}selected{% endif %}>{{ label }}</option>
-          {% endfor %}
-        </select>
-        <button type="submit">Zapisz</button>
-      </form>
-    </td>
-    <td>
-      {% if r.status != 'cancelled' %}
-        <form class="actions" method="post" action="{{ url_for('reservation_status', reservation_id=r.id) }}">
-          {% if r.status == 'pending' %}
-            <button type="submit" name="status" value="confirmed">Potwierdź</button>
-          {% endif %}
-          <button type="submit" class="danger" name="status" value="cancelled">Anuluj</button>
-        </form>
-      {% endif %}
-    </td>
-  </tr>
-  {% endfor %}
-</table>
-</div>
+  <div class="table-wrap">
+    <table>
+      <tr>
+        <th>Nr</th>
+        <th>Klient</th>
+        <th>Trasa</th>
+        <th>Uczestnicy</th>
+        <th>Kwota</th>
+        <th>Status</th>
+        <th>Płatność</th>
+        <th>Akcje</th>
+      </tr>
+      {% for r in reservations %}
+        <tr>
+          <td>{{ r.id }}</td>
+          <td>{{ r.user_email or "Gość" }}</td>
+          <td>{{ r.origin }} → {{ r.destination }}</td>
+          <td>{{ r.participants }}</td>
+          <td>{{ r.total_grosz // 100 }},{{ "%02d"|format(r.total_grosz % 100) }} zł</td>
+          <td>{{ reservation_statuses[r.status] }}</td>
+          <td>
+            <form class="actions" method="post" action="{{ url_for('payment_status', reservation_id=r.id) }}">
+              <select name="status" aria-label="Status płatności rezerwacji {{ r.id }}">
+                {% for value, label in payment_statuses.items() %}
+                  <option value="{{ value }}" {% if r.payment_status == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </select>
+              <button type="submit">Zapisz</button>
+            </form>
+          </td>
+          <td>
+            {% if r.status != 'cancelled' %}
+              <form class="actions" method="post" action="{{ url_for('reservation_status', reservation_id=r.id) }}">
+                {% if r.status == 'pending' %}
+                  <button type="submit" name="status" value="confirmed">Potwierdź</button>
+                {% endif %}
+                <button type="submit" class="danger" name="status" value="cancelled">Anuluj</button>
+              </form>
+            {% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+    </table>
+  </div>
 {% else %}
-<p>Brak rezerwacji.</p>
+  <p>Brak rezerwacji.</p>
 {% endif %}
 {% endblock %}

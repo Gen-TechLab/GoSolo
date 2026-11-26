@@ -1,16 +1,24 @@
 {% extends "base.html" %}
+{% block title %}Rezerwacja — GoSolo{% endblock %}
 {% block content %}
-<h1>Rezerwacja – {{ offer.destination }}</h1>
-<p>{{ offer.start_date }} – {{ offer.end_date }}</p>
-<p>Cena za osobę: {{ "%.2f"|format(offer.price) }} zł</p>
-<p>Wolne miejsca: {{ [offer.available_seats, 0]|max }}</p>
-{% if error %}<p class="error">{{ error }}</p>{% endif %}
-{% if offer.available_seats > 0 %}
-<form class="form" method="post">
-  <label>Liczba uczestników
-    <input type="number" name="participants" min="1" max="{{ offer.available_seats }}" value="1" required>
-  </label>
-  <button type="submit">Zgłoś rezerwację</button>
-</form>
-{% endif %}
+<div class="auth-card">
+  <p class="eyebrow">Rezerwacja wycieczki</p>
+  <h1>{{ offer.origin }} → {{ offer.destination }}</h1>
+  <p class="meta"><b>Termin:</b> {{ offer.start_date }} – {{ offer.end_date }}</p>
+  <p class="meta"><b>Cena za osobę:</b> {{ "%.2f"|format(offer.price) }} zł</p>
+  <p class="meta"><b>Wolne miejsca:</b> {{ [offer.available_seats, 0]|max }}</p>
+
+  {% if error %}<p class="error">{{ error }}</p>{% endif %}
+
+  {% if offer.available_seats > 0 %}
+    <form class="form" method="post">
+      <label>Liczba uczestników
+        <input type="number" name="participants" min="1" max="{{ offer.available_seats }}" value="1" required>
+      </label>
+      <button type="submit">Zgłoś rezerwację</button>
+    </form>
+  {% else %}
+    <p class="muted">Brak wolnych miejsc na tę wycieczkę.</p>
+  {% endif %}
+</div>
 {% endblock %}

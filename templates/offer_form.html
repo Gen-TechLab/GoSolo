@@ -1,13 +1,29 @@
 {% extends "base.html" %}
+{% block title %}{{ title }} — GoSolo{% endblock %}
 {% block content %}
 <h1>{{ title }}</h1>
 {% for e in errors %}<p class="error">{{ e }}</p>{% endfor %}
 <form method="post" class="form">
-  <label>Kierunek <input name="destination" value="{{ offer.destination or '' }}"></label>
-  <label>Data wyjazdu <input type="date" name="start_date" value="{{ offer.start_date or '' }}"></label>
-  <label>Data powrotu <input type="date" name="end_date" value="{{ offer.end_date or '' }}"></label>
-  <label>Cena za osobę (zł) <input name="price" value="{{ offer.price or '' }}"></label>
-  <label>Limit miejsc <input name="seats" value="{{ offer.seats or '' }}"></label>
+  <label>Skąd (miejsce wyjazdu)
+    <input name="origin" placeholder="np. Warszawa" value="{{ offer.origin or '' }}" required>
+  </label>
+  <label>Dokąd (kierunek)
+    <input name="destination" placeholder="np. Chorwacja - Split" value="{{ offer.destination or '' }}" required>
+  </label>
+  <label>Data wyjazdu
+    <input class="smart-date" type="{{ 'date' if offer.start_date else 'text' }}"
+           name="start_date" placeholder="Wybierz datę" value="{{ offer.start_date or '' }}" required>
+  </label>
+  <label>Data powrotu
+    <input class="smart-date" type="{{ 'date' if offer.end_date else 'text' }}"
+           name="end_date" placeholder="Wybierz datę" value="{{ offer.end_date or '' }}" required>
+  </label>
+  <label>Cena za osobę (zł)
+    <input type="number" name="price" min="0.01" step="0.01" value="{{ offer.price or '' }}" required>
+  </label>
+  <label>Limit miejsc
+    <input type="number" name="seats" min="1" step="1" value="{{ offer.seats or '' }}" required>
+  </label>
   <label>Typ wyjazdu
     <select name="trip_type">
       {% for t in trip_types %}
@@ -15,7 +31,9 @@
       {% endfor %}
     </select>
   </label>
-  <button type="submit">Zapisz</button>
-  <a href="{{ url_for('admin') }}">Anuluj</a>
+  <div class="actions">
+    <button type="submit">Zapisz</button>
+    <a class="link-muted" href="{{ url_for('admin') }}">Anuluj</a>
+  </div>
 </form>
 {% endblock %}

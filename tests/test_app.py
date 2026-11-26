@@ -1,8 +1,29 @@
 import db
-from validation import validate_offer
+from validation import validate_offer, validate_registration
 
-GOOD = {"destination": "Grecja - Kreta", "start_date": "2027-08-01", "end_date": "2027-08-08",
-        "price": "3200", "seats": "10", "trip_type": "plażowy"}
+GOOD = {
+    "origin": "Warszawa",
+    "destination": "Grecja - Kreta",
+    "start_date": "2027-08-01",
+    "end_date": "2027-08-08",
+    "price": "3200",
+    "seats": "10",
+    "trip_type": "plażowy",
+}
+
+
+def _register_and_login_client(client, email="klient@example.com", password="Password1"):
+    r = client.post(
+        "/register",
+        data={
+            "email": email,
+            "password": password,
+            "password_confirm": password,
+        },
+        follow_redirects=True,
+    )
+    assert r.status_code == 200
+    return client
 
 
 # US01 - catalog
@@ -20,7 +41,7 @@ def test_login_ok(client):
 
 def test_login_wrong_shows_error(client):
     r = client.post("/login", data={"login": "agent", "password": "zle"})
-    assert "Niepoprawny login lub hasło." in r.get_data(as_text=True)
+    assert "Niepoprawny login, e-mail lub hasło." in r.get_data(as_text=True)
 
 
 def test_admin_blocked_when_logged_out(client):
@@ -31,6 +52,45 @@ def test_admin_blocked_when_logged_out(client):
 def test_logout(agent):
     agent.get("/logout")
     assert agent.get("/admin").status_code == 302
+
+
+# Client registration & login
+def test_register_and_duplicate_email_blocked(client):
+    _register_and_login_client(client, email="test@example.com", password="User123")
+    client.get("/logout")
+    r = client.post(
+        "/register",
+        data={
+            "email": "test@example.com",
+            "password": "User123",
+            "password_confirm": "User123",
+        },
+    )
+    assert r.status_code == 400
+    assert "Konto z tym adresem e-mail już istnieje." in r.get_data(as_text=True)
+
+
+def test_registration_password_rules():
+    assert validate_registration({
+        "email": "a@b.pl",
+        "password": "abc",
+        "password_confirm": "abc",
+    })[1]
+    assert validate_registration({
+        "email": "a@b.pl",
+        "password": "abcdef",
+        "password_confirm": "abcdef",
+    })[1]
+    assert validate_registration({
+        "email": "a@b.pl",
+        "password": "Password1",
+        "password_confirm": "Password2",
+    })[1]
+    assert validate_registration({
+        "email": "a@b.pl",
+        "password": "Password1",
+        "password_confirm": "Password1",
+    })[1] == []
 
 
 # US03 - manage offers
@@ -58,6 +118,7 @@ def test_delete_offer(agent):
 
 def test_validation_rules():
     assert validate_offer(GOOD)[1] == []
+    assert validate_offer({**GOOD, "origin": ""})[1]
     assert validate_offer({**GOOD, "destination": ""})[1]
     assert validate_offer({**GOOD, "end_date": "2027-07-01"})[1]  # return before departure
     assert validate_offer({**GOOD, "seats": "0"})[1]
@@ -66,16 +127,22 @@ def test_validation_rules():
 
 def test_catalog_combines_filters(client):
     response = client.get("/", query_string={
-        "destination": "WŁOCHY", "start": "2027-04-01", "end": "2027-04-30",
-        "max_price": "2100", "available": "1",
+        "origin": "krakow",
+        "destination": "WLOCHY",
+        "start": "2027-04-01",
+        "end": "2027-04-30",
+        "max_price": "2100",
+        "available": "1",
     })
     page = response.get_data(as_text=True)
-    assert "Włochy - Rzym" in page
-    assert "Chorwacja - Split" not in page
-    assert "Słowacja - Tatry" not in page
+    catalog_part = page.split('id="catalog-title"', 1)[1]
+    assert "Kraków → Włochy - Rzym" in catalog_part
+    assert "Warszawa → Chorwacja - Split" not in catalog_part
+    assert "Katowice → Słowacja - Tatry" not in catalog_part
 
 
 def test_reservation_enforces_capacity_and_calculates_total(client):
+    _register_and_login_client(client)
     offer = db.get_offer(1)
     path = "/offers/1/reserve"
     assert client.post(path, data={"participants": offer["seats"] + 1}).status_code == 400
@@ -83,7 +150,7 @@ def test_reservation_enforces_capacity_and_calculates_total(client):
     assert "58000,00 zł" in response.get_data(as_text=True)
     assert client.post(path, data={"participants": 1}).status_code == 400
     assert len(db.list_reservations()) == 1
-    assert "Chorwacja - Split" not in client.get("/?available=1").get_data(as_text=True)
+    assert "Warszawa → Chorwacja - Split" not in client.get("/?available=1").get_data(as_text=True)
 
 
 def test_cancellation_releases_seats_once(agent):
