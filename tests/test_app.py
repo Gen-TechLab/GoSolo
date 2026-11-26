@@ -1,5 +1,5 @@
-import db
-from validation import validate_offer, validate_registration
+from src import db
+from src.validation import validate_offer, validate_registration
 
 GOOD = {
     "origin": "Warszawa",

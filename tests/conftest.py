@@ -3,11 +3,11 @@ import sys
 
 import pytest
 
-# make "import app" work when running pytest from the project folder
+# Add the repository root when pytest is launched as a console script.
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
-import app as app_module  # noqa: E402
-import db  # noqa: E402
+from src import app as app_module  # noqa: E402
+from src import db  # noqa: E402
 
 
 @pytest.fixture

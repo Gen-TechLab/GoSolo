@@ -1,18 +1,19 @@
-"""GoSolo - Flask app. Run with:  python app.py"""
+"""GoSolo Flask app. Run with `python -m src.app`."""
 import os
 import unicodedata
 from datetime import date
 from decimal import Decimal, InvalidOperation
 from functools import wraps
+from pathlib import Path
 from urllib.parse import urlparse
 
 from flask import Flask, abort, flash, redirect, render_template, request, session, url_for
 from werkzeug.security import check_password_hash, generate_password_hash
 
-import db
-from validation import TRIP_TYPES, validate_offer, validate_registration
+from . import db
+from .validation import TRIP_TYPES, validate_offer, validate_registration
 
-app = Flask(__name__)
+app = Flask(__name__, root_path=str(Path(__file__).resolve().parent))
 app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-me")
 
 # One simple agent account (README: "jedno proste konto agenta").

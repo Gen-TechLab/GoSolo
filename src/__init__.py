@@ -1,0 +1,1 @@
+"""GoSolo application package."""
