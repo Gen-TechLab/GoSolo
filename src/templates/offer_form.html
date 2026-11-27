@@ -1,15 +1,20 @@
 {% extends "base.html" %}
 {% block title %}{{ title }} — GoSolo{% endblock %}
 {% block content %}
+<div class="auth-card">
 <h1>{{ title }}</h1>
 {% for e in errors %}<p class="error">{{ e }}</p>{% endfor %}
 <form method="post" class="form">
-  <label>Skąd (miejsce wyjazdu)
+  <label>Miasto wyjazdu
     <input name="origin" placeholder="np. Warszawa" value="{{ offer.origin or '' }}" required>
   </label>
-  <label>Dokąd (kierunek)
-    <input name="destination" placeholder="np. Chorwacja - Split" value="{{ offer.destination or '' }}" required>
+  <label>Miasto docelowe
+    <input name="destination" placeholder="np. Rzym" value="{{ offer.destination or '' }}" required>
   </label>
+  <label>Kraj docelowy
+    <input name="country" list="countries" placeholder="np. Włochy" value="{{ offer.country or '' }}" required>
+  </label>
+  <datalist id="countries">{% for country in countries %}<option value="{{ country }}">{% endfor %}</datalist>
   <label>Data wyjazdu
     <input class="smart-date" type="{{ 'date' if offer.start_date else 'text' }}"
            name="start_date" placeholder="Wybierz datę" value="{{ offer.start_date or '' }}" required>
@@ -36,4 +41,5 @@
     <a class="link-muted" href="{{ url_for('admin') }}">Anuluj</a>
   </div>
 </form>
+</div>
 {% endblock %}

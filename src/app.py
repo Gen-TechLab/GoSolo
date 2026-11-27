@@ -1,20 +1,30 @@
 """GoSolo Flask app. Run with `python -m src.app`."""
+import mimetypes
 import os
-import unicodedata
+import re
 from datetime import date
 from decimal import Decimal, InvalidOperation
 from functools import wraps
 from pathlib import Path
+from secrets import compare_digest, token_urlsafe
 from urllib.parse import urlparse
 
 from flask import Flask, abort, flash, redirect, render_template, request, session, url_for
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from . import db
+from .flights import origin_matches, search_flights
+from .locations import COUNTRIES, destination_matches, normalize_text
 from .validation import TRIP_TYPES, validate_offer, validate_registration
 
+mimetypes.add_type("image/webp", ".webp")
 app = Flask(__name__, root_path=str(Path(__file__).resolve().parent))
 app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-me")
+
+
+@app.template_filter("pln")
+def format_pln(grosz):
+    return f"{grosz // 100:,}".replace(",", "\u00a0") + f",{grosz % 100:02d} zł"
 
 # One simple agent account (README: "jedno proste konto agenta").
 AGENT_LOGIN = os.environ.get("AGENT_LOGIN", "agent")
@@ -38,19 +48,17 @@ def login_required(view):
         return view(*args, **kwargs)
     return wrapper
 
-def _normalize_text(value: str) -> str:
-    """Normalize Polish letters (ł -> l, diacritics stripped) for case-insensitive search."""
-    cleaned = (value or "").replace("ł", "l").replace("Ł", "l")
-    decomposed = unicodedata.normalize("NFKD", cleaned)
-    without_marks = "".join(ch for ch in decomposed if not unicodedata.combining(ch))
-    return without_marks.casefold().strip()
+@app.context_processor
+def offer_countries():
+    return {"countries": COUNTRIES}
+
 
 # ---------- US01: catalog for clients ----------
 @app.route("/")
 def catalog():
     filters = request.args
-    origin = _normalize_text(filters.get("origin", ""))
-    destination = _normalize_text(filters.get("destination", ""))
+    origin = normalize_text(filters.get("origin", ""))
+    destination = normalize_text(filters.get("destination", ""))
     start = filters.get("start", "")
     end = filters.get("end", "")
     max_price = filters.get("max_price", "").strip()
@@ -73,18 +81,23 @@ def catalog():
 
     offers = [
         offer for offer in db.catalog_offers()
-        if origin in _normalize_text(offer["origin"] or "")
-        and destination in _normalize_text(offer["destination"] or "")
+        if origin_matches(origin, offer["origin"])
+        and destination_matches(destination, offer["destination"], offer["country"])
         and (not start or offer["start_date"] >= start)
         and (not end or offer["end_date"] <= end)
         and (price is None or Decimal(str(offer["price"])) <= price)
         and (filters.get("available") != "1" or offer["available_seats"] > 0)
     ]
+    flight_status, flights = search_flights(
+        origin, destination, start, os.environ.get("AERODATABOX_API_KEY", "").strip()
+    )
     return render_template(
         "catalog.html",
         offers=offers,
         popular=db.popular_offers(3),
         filters=filters,
+        flight_status=flight_status,
+        flights=flights,
     )
 
 
@@ -130,7 +143,29 @@ def my_reservations():
     if not user_id:
         flash("Zaloguj się, aby zobaczyć swoje rezerwacje.")
         return redirect(url_for("login", next=url_for("my_reservations")))
-    return render_template("my_reservations.html", reservations=db.list_user_reservations(user_id))
+    if "cancel_token" not in session:
+        session["cancel_token"] = token_urlsafe()
+    return render_template("my_reservations.html", reservations=db.list_user_reservations(user_id),
+                           reservation_statuses=RESERVATION_STATUSES,
+                           payment_statuses=PAYMENT_STATUSES)
+
+
+@app.post("/my-reservations/<int:reservation_id>/cancel")
+def cancel_reservation(reservation_id):
+    user_id = session.get("user_id")
+    if not user_id:
+        return redirect(url_for("login", next=url_for("my_reservations")))
+    token = session.get("cancel_token")
+    if not token or not compare_digest(token.encode(), request.form.get("token", "").encode()):
+        abort(400)
+    reservation = db.cancel_user_reservation(reservation_id, user_id)
+    if reservation is None:
+        abort(404)
+    message = "Rezerwacja została anulowana."
+    if reservation["payment_status"] != "unpaid":
+        message += " Skontaktuj się z biurem w sprawie rozliczenia wpłaty."
+    flash(message)
+    return redirect(url_for("my_reservations"))
 
 
 # ---------- Client registration & login / logout ----------
@@ -224,9 +259,19 @@ def payment_status(reservation_id):
     status = request.form.get("status")
     if status not in PAYMENT_STATUSES:
         abort(400)
-    if not db.update_payment_status(reservation_id, status):
+    deposit = None
+    amount = request.form.get("deposit", "").strip().replace(",", ".")
+    if status == "deposit" and amount:
+        if re.fullmatch(r"[0-9]{1,17}(?:\.[0-9]{1,2})?", amount):
+            deposit = int(Decimal(amount) * 100)
+        if deposit is None or not 0 < deposit <= 2**63 - 1:
+            flash("Podaj poprawną kwotę zaliczki z dokładnością do grosza.")
+            return redirect(url_for("admin", _anchor=f"rezerwacja-{reservation_id}"))
+    updated = db.update_payment_status(reservation_id, status, deposit)
+    if updated is None:
         abort(404)
-    return redirect(url_for("admin"))
+    flash("Zapisano płatność." if updated else "Zaliczka musi być niższa od wartości rezerwacji.")
+    return redirect(url_for("admin", _anchor=f"rezerwacja-{reservation_id}"))
 
 
 @app.route("/admin/new", methods=["GET", "POST"])

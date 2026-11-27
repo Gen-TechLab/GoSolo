@@ -31,13 +31,25 @@ Otwórz <http://127.0.0.1:5000>. Przy pierwszym uruchomieniu aplikacja tworzy pl
 
 ### Ścieżka MVP — od katalogu do potwierdzenia rezerwacji
 
-1. W katalogu wybierz **Chorwacja - Split** i kliknij **Zarezerwuj**.
+1. W katalogu wybierz **Warszawa → Split** i kliknij **Zarezerwuj**.
 2. Na ekranie logowania wybierz rejestrację i utwórz konto klienta. Na potrzeby demonstracji użyj np. adresu `klient@example.com` i hasła `Test1234`.
-3. Wróć do oferty, wpisz **2** uczestników i kliknij **Zgłoś rezerwację**. W sekcji **Moje rezerwacje** sprawdź status `pending` i cenę **5800,00 zł**.
+3. Wróć do oferty, wpisz **2** uczestników i kliknij **Zgłoś rezerwację**. W sekcji **Moje rezerwacje** sprawdź status **Zgłoszona** i cenę **5 800,00 zł**.
 4. Wyloguj się i zaloguj jako agent (`agent` / `agent123`). W panelu agenta znajdź zgłoszenie i kliknij **Potwierdź**.
-5. Zatrzymaj serwer skrótem **Ctrl+C** i uruchom go ponownie tym samym poleceniem. Po zalogowaniu na konto klienta sprawdź, czy w sekcji **Moje rezerwacje** nadal widnieje status `confirmed`.
+5. W panelu agenta ustaw płatność na **Zaliczka**, wpisz **300,50 zł** i zapisz. Po ponownym uruchomieniu serwera sprawdź na koncie klienta status **Potwierdzona** i pozostałą kwotę **5 499,50 zł**.
+6. Wybierz **Anuluj rezerwację** i potwierdź. Miejsca wrócą do katalogu, a zapisana wpłata będzie nadal widoczna w historii rezerwacji.
 
 Domyślne dane agenta służą do uruchomienia lokalnego. Można je zmienić zmiennymi środowiskowymi `AGENT_LOGIN` i `AGENT_PASSWORD`.
+
+### Rozkład lotów
+
+Włącz [AeroDataBox w RapidAPI](https://rapidapi.com/aedbx-aedbx/api/aerodatabox) i ustaw klucz w zmiennej środowiskowej `AERODATABOX_API_KEY` przed uruchomieniem aplikacji. W PowerShell:
+
+```powershell
+$env:AERODATABOX_API_KEY = Read-Host "Klucz RapidAPI"
+.\venv\Scripts\python.exe -m src.app
+```
+
+W katalogu wpisz miasto lub kod IATA wylotu (np. `KRK`), miasto lub kraj docelowy oraz datę w polu **Wyjazd od**. Rozkład pokazuje do 20 pasujących bezpośrednich lotów z wybranego dnia, z czasami lokalnymi oraz terminalem i bramką, gdy dostawca je podaje. GoSolo przez pięć minut przechowuje w pamięci rozkład danego lotniska i przedziału czasu. Zakres przyszłych dat zależy od planu i pokrycia danych AeroDataBox.
 
 Testy uruchom w katalogu repozytorium poleceniem `.\venv\Scripts\python.exe -m pytest` w Windows albo `./venv/bin/python -m pytest` w macOS i Linux.
 
