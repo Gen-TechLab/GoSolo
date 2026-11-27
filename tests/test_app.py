@@ -3,7 +3,8 @@ from src.validation import validate_offer, validate_registration
 
 GOOD = {
     "origin": "Warszawa",
-    "destination": "Grecja - Kreta",
+    "destination": "Heraklion",
+    "country": "Grecja",
     "start_date": "2027-08-01",
     "end_date": "2027-08-08",
     "price": "3200",
@@ -29,7 +30,7 @@ def _register_and_login_client(client, email="klient@example.com", password="Pas
 # US01 - catalog
 def test_catalog_shows_offers_from_db(client):
     page = client.get("/").get_data(as_text=True)
-    assert "Chorwacja - Split" in page
+    assert "Warszawa → Split" in page
     assert "plażowy" in page
 
 
@@ -96,7 +97,7 @@ def test_registration_password_rules():
 # US03 - manage offers
 def test_add_offer(agent):
     agent.post("/admin/new", data=GOOD)
-    assert any(o["destination"] == "Grecja - Kreta" for o in db.list_offers())
+    assert any(o["destination"] == "Heraklion" and o["country"] == "Grecja" for o in db.list_offers())
 
 
 def test_invalid_offer_is_not_saved(agent):
@@ -127,7 +128,7 @@ def test_validation_rules():
 
 def test_catalog_combines_filters(client):
     response = client.get("/", query_string={
-        "origin": "krakow",
+        "origin": "KRK",
         "destination": "WLOCHY",
         "start": "2027-04-01",
         "end": "2027-04-30",
@@ -136,9 +137,20 @@ def test_catalog_combines_filters(client):
     })
     page = response.get_data(as_text=True)
     catalog_part = page.split('id="catalog-title"', 1)[1]
-    assert "Kraków → Włochy - Rzym" in catalog_part
-    assert "Warszawa → Chorwacja - Split" not in catalog_part
-    assert "Katowice → Słowacja - Tatry" not in catalog_part
+    assert "Kraków → Rzym" in catalog_part
+    assert "Warszawa → Split" not in catalog_part
+    assert "Katowice → Poprad" not in catalog_part
+
+
+def test_catalog_searches_countries_in_supported_languages(client):
+    db.add_offer({**GOOD, "destination": "Tokio", "country": "Japonia"})
+    for query in ("Italia", "Италия", "Італія", "Italy", "Włochy"):
+        page = client.get("/", query_string={"destination": query}).get_data(as_text=True)
+        assert "Kraków → Rzym" in page
+        assert "Warszawa → Split" not in page
+    page = client.get("/", query_string={"destination": "Япония"}).get_data(as_text=True)
+    assert "Warszawa → Tokio" in page
+    assert "Kraków → Rzym" not in page
 
 
 def test_reservation_enforces_capacity_and_calculates_total(client):
@@ -150,7 +162,7 @@ def test_reservation_enforces_capacity_and_calculates_total(client):
     assert "58000,00 zł" in response.get_data(as_text=True)
     assert client.post(path, data={"participants": 1}).status_code == 400
     assert len(db.list_reservations()) == 1
-    assert "Warszawa → Chorwacja - Split" not in client.get("/?available=1").get_data(as_text=True)
+    assert "Warszawa → Split" not in client.get("/?available=1").get_data(as_text=True)
 
 
 def test_cancellation_releases_seats_once(agent):
@@ -177,3 +189,44 @@ def test_payment_status_persists(agent):
     assert db.list_reservations()[0]["payment_status"] == "deposit"
     page = agent.get("/admin").get_data(as_text=True)
     assert 'value="deposit" selected' in page
+
+
+def test_customer_can_cancel_only_own_reservation(client):
+    _register_and_login_client(client)
+    client.post("/offers/1/reserve", data={"participants": 2})
+    mine = db.list_reservations()[0]["id"]
+    other_user = db.create_user("other@example.com", "hash")
+    other, _ = db.create_reservation(1, 1, user_id=other_user)
+    db.update_reservation_status(mine, "confirmed")
+    db.update_payment_status(mine, "deposit", 10000)
+    page = client.get("/my-reservations").get_data(as_text=True)
+    assert "Anuluj rezerwację" in page
+    with client.session_transaction() as active_session:
+        token = active_session["cancel_token"]
+    assert client.get(f"/my-reservations/{mine}/cancel").status_code == 405
+    assert client.post(f"/my-reservations/{mine}/cancel").status_code == 400
+    assert client.post(f"/my-reservations/{other}/cancel", data={"token": token}).status_code == 404
+    for _ in range(2):
+        page = client.post(f"/my-reservations/{mine}/cancel", data={"token": token},
+                           follow_redirects=True).get_data(as_text=True)
+        assert "Anulowana" in page and "Anuluj rezerwację" not in page
+    assert db.bookable_offer(1)["available_seats"] == 19
+    assert db.list_reservations()[1]["deposit_grosz"] == 10000
+
+
+def test_agent_records_deposit_and_customer_sees_balance(client):
+    _register_and_login_client(client)
+    client.post("/offers/1/reserve", data={"participants": 1})
+    reservation = db.list_reservations()[0]
+    path = f"/admin/reservations/{reservation['id']}/payment"
+    agent = client.application.test_client()
+    agent.post("/login", data={"login": "agent", "password": "agent123"})
+    agent.post(path, data={"status": "deposit", "deposit": "300,50"})
+    db.init_db()
+    page = client.get("/my-reservations").get_data(as_text=True)
+    assert "300,50 zł" in page and "2\u00a0599,50 zł" in page
+    agent.post(path, data={"status": "deposit", "deposit": "2900.00"})
+    assert db.list_reservations()[0]["deposit_grosz"] == 30050
+    agent.post(path, data={"status": "paid"})
+    assert db.list_reservations()[0]["deposit_grosz"] is None
+    assert "Opłacona" in client.get("/my-reservations").get_data(as_text=True)

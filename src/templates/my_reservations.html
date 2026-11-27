@@ -1,24 +1,48 @@
 {% extends "base.html" %}
 {% block title %}Moje rezerwacje — GoSolo{% endblock %}
 {% block content %}
-<h1>Moje rezerwacje</h1>
+<div class="page-head">
+  <h1>Moje rezerwacje</h1>
+  <a class="button button-secondary" href="{{ url_for('catalog') }}">Przeglądaj wycieczki <span aria-hidden="true">↗</span></a>
+</div>
 {% if reservations %}
-  <div class="grid">
+  <div class="grid reservation-grid">
     {% for r in reservations %}
-      <article class="card">
-        <h3>Rezerwacja nr {{ r.id }}</h3>
-        <p class="meta"><b>Trasa:</b> {{ r.origin }} → {{ r.destination }}</p>
-        <p class="meta"><b>Termin:</b> {{ r.start_date }} – {{ r.end_date }}</p>
-        <p class="meta"><b>Uczestnicy:</b> {{ r.participants }}</p>
-        <p class="meta"><b>Kwota:</b> {{ r.total_grosz // 100 }},{{ "%02d"|format(r.total_grosz % 100) }} zł</p>
-        <p class="meta"><b>Status:</b> {{ r.status }} | <b>Płatność:</b> {{ r.payment_status }}</p>
+      <article class="card reservation-card">
+        <div class="card-top">
+          <span class="eyebrow">Rezerwacja nr {{ r.id }}</span>
+          <span class="badge status-{{ r.status }}">{{ reservation_statuses[r.status] }}</span>
+        </div>
+        <h2>{{ r.origin }} → {{ r.destination }}</h2>
+        <dl class="details-list">
+          <div><dt>Termin</dt><dd>{{ r.start_date }} – {{ r.end_date }}</dd></div>
+          <div><dt>Uczestnicy</dt><dd>{{ r.participants }}</dd></div>
+        </dl>
+        {% set paid = r.total_grosz if r.payment_status == 'paid' else r.deposit_grosz if r.payment_status == 'deposit' else 0 %}
+        <div class="payment-summary">
+          <div class="card-top"><h3>Płatność</h3><span class="badge status-{{ r.payment_status }}">{{ payment_statuses[r.payment_status] }}</span></div>
+          <dl class="details-list">
+            <div><dt>Wartość rezerwacji</dt><dd>{{ r.total_grosz|pln }}</dd></div>
+            <div><dt>Zaksięgowano</dt><dd>{{ paid|pln if paid is not none else 'Kwota nieuzupełniona' }}</dd></div>
+            {% if r.status != 'cancelled' and paid is not none %}
+              <div class="balance"><dt>Pozostało do zapłaty</dt><dd>{{ (r.total_grosz - paid)|pln }}</dd></div>
+            {% endif %}
+          </dl>
+          {% if r.status == 'cancelled' and r.payment_status != 'unpaid' %}
+            <p class="muted">W sprawie rozliczenia wpłaty skontaktuj się z biurem.</p>
+          {% endif %}
+        </div>
+        {% if r.status != 'cancelled' %}
+          <form class="reservation-actions" method="post" action="{{ url_for('cancel_reservation', reservation_id=r.id) }}"
+                onsubmit="return confirm('Anulować rezerwację i zwolnić miejsca?{% if r.payment_status != 'unpaid' %} Rozliczenie wpłaty ustalisz z biurem.{% endif %}');">
+            <input type="hidden" name="token" value="{{ session.cancel_token }}">
+            <button type="submit" class="danger">Anuluj rezerwację</button>
+          </form>
+        {% endif %}
       </article>
     {% endfor %}
   </div>
 {% else %}
-  <div class="empty-box">
-    <p>Nie masz jeszcze żadnych rezerwacji.</p>
-    <a class="button" href="{{ url_for('catalog') }}">Przeglądaj wycieczki</a>
-  </div>
+  <div class="empty-box"><p>Nie masz jeszcze żadnych rezerwacji.</p></div>
 {% endif %}
 {% endblock %}

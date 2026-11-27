@@ -9,14 +9,14 @@
 <body>
   <header class="site-header">
     <div class="header-inner">
-      <a class="logo" href="{{ url_for('catalog') }}">GoSolo</a>
+      <a class="logo" href="{{ url_for('catalog') }}"><span class="logo-mark" aria-hidden="true">↗</span>Go<span>Solo</span></a>
       <nav class="nav" aria-label="Główna nawigacja">
-        <a href="{{ url_for('catalog') }}">Wycieczki</a>
+        <a href="{{ url_for('catalog') }}"{% if request.endpoint == 'catalog' %} aria-current="page"{% endif %}>Wycieczki</a>
         {% if session.get("user_id") %}
-          <a href="{{ url_for('my_reservations') }}">Moje rezerwacje</a>
+          <a href="{{ url_for('my_reservations') }}"{% if request.endpoint == 'my_reservations' %} aria-current="page"{% endif %}>Moje rezerwacje</a>
         {% endif %}
         {% if session.get("agent") %}
-          <a href="{{ url_for('admin') }}">Panel agenta</a>
+          <a href="{{ url_for('admin') }}"{% if request.endpoint == 'admin' %} aria-current="page"{% endif %}>Panel agenta</a>
         {% endif %}
         {% if session.get("user_id") or session.get("agent") %}
           <span class="nav-user">{{ session.get("user_email") or "agent" }}</span>
@@ -30,12 +30,12 @@
   </header>
   <main class="container">
     {% for message in get_flashed_messages() %}
-      <p class="flash">{{ message }}</p>
+      <p class="flash" role="status">{{ message }}</p>
     {% endfor %}
     {% block content %}{% endblock %}
   </main>
   <footer class="site-footer">
-    <div class="container">GoSolo — Twoja podróż zaczyna się tutaj.</div>
+    <div class="container">GoSolo</div>
   </footer>
   <script>
     document.querySelectorAll(".smart-date").forEach((el) => {

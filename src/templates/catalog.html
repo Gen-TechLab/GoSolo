@@ -1,109 +1,105 @@
 {% extends "base.html" %}
 {% block title %}Wycieczki — GoSolo{% endblock %}
-{% block content %}
-<section class="hero">
-  <p class="hero-kicker">Podróżuj po swojemu</p>
-  <h1>Znajdź swój następny kierunek</h1>
-  <p class="hero-sub">Sprawdzone wycieczki, przejrzyste ceny i rezerwacja bez zbędnych formalności.</p>
-</section>
-
-{% if popular %}
-<section class="section" aria-labelledby="popular-title">
-  <div class="section-head">
-    <div>
-      <p class="eyebrow">Na czasie</p>
-      <h2 id="popular-title">Najpopularniejsze</h2>
+{% macro trip_card(o) %}
+<article class="card trip-card">
+  <div class="trip-body">
+    <div class="card-top"><span class="badge">{{ o.trip_type }}</span>{% if o.country %}<span class="muted">{{ o.country }}</span>{% endif %}</div>
+    <h3>{{ o.origin }} → {{ o.destination }}</h3>
+    <p class="meta">{{ o.start_date }} – {{ o.end_date }}</p>
+    <p class="meta">{% if o.available_seats > 0 %}{{ o.available_seats }} z {{ o.seats }} miejsc wolnych{% else %}Brak wolnych miejsc{% endif %}</p>
+    <div class="trip-bottom">
+      <div><strong>{{ (o.price * 100)|round|int|pln }}</strong><small> za osobę</small></div>
+      {% if o.available_seats > 0 %}
+        <a class="button" href="{{ url_for('reserve_offer', offer_id=o.id) }}">Zarezerwuj <span aria-hidden="true">↗</span></a>
+      {% endif %}
     </div>
   </div>
-  <div class="grid">
-    {% for o in popular %}
-      <article class="card card-popular">
-        <div class="card-top">
-          <span class="badge badge-popular">Najpopularniejsze</span>
-          <span class="badge badge-type">{{ o.trip_type }}</span>
-        </div>
-        <h3>{{ o.origin }} → {{ o.destination }}</h3>
-        <p class="meta"><b>Termin:</b> {{ o.start_date }} – {{ o.end_date }}</p>
-        <p class="meta"><b>Cena:</b> {{ "%.2f"|format(o.price) }} zł / os.</p>
-        <p class="meta"><b>Wolne miejsca:</b> {{ [o.available_seats, 0]|max }} / {{ o.seats }}</p>
-        {% if o.available_seats > 0 %}
-          <a class="button" href="{{ url_for('reserve_offer', offer_id=o.id) }}">Zarezerwuj</a>
-        {% else %}
-          <span class="muted">Brak wolnych miejsc</span>
-        {% endif %}
-      </article>
-    {% endfor %}
+</article>
+{% endmacro %}
+{% block content %}
+<section class="hero">
+  <div class="hero-copy">
+    <p class="eyebrow">Katalog wycieczek</p>
+    <h1>Podróżuj<br><em>po swojemu.</em></h1>
+    <p class="hero-sub">Wybierz kierunek, znajdź dogodny termin i zarezerwuj miejsce na kolejny wyjazd.</p>
+    <a class="button hero-button" href="#szukaj">Znajdź wycieczkę <span aria-hidden="true">↓</span></a>
   </div>
+</section>
+
+<section class="search-section" id="szukaj" aria-labelledby="search-title">
+  <form class="filter-panel" method="get" action="{{ url_for('catalog', _anchor='wyniki') }}">
+    <div class="filter-head"><h2 id="search-title">Znajdź wycieczkę</h2></div>
+    <div class="filter-grid">
+      <label>Skąd<input name="origin" placeholder="np. Kraków lub KRK" value="{{ filters.get('origin', '') }}"></label>
+      <label>Miasto lub kraj<input name="destination" placeholder="np. Rzym lub Włochy" value="{{ filters.get('destination', '') }}"></label>
+      <label>Wyjazd od<input type="date" name="start" value="{{ filters.get('start', '') }}"></label>
+      <label>Powrót do<input type="date" name="end" value="{{ filters.get('end', '') }}"></label>
+      <label>Cena do (zł/os.)<input type="number" name="max_price" min="0" step="0.01" placeholder="Bez limitu" value="{{ filters.get('max_price', '') }}"></label>
+    </div>
+    <div class="filter-actions">
+      <label class="checkbox-field"><input type="checkbox" name="available" value="1" {% if filters.get('available') == '1' %}checked{% endif %}> Tylko wolne miejsca</label>
+      <a class="link-muted" href="{{ url_for('catalog', _anchor='szukaj') }}">Wyczyść filtry</a>
+      <button type="submit">Szukaj</button>
+    </div>
+    {% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
+  </form>
+</section>
+
+{% if popular and not filters %}
+<section class="section" aria-labelledby="popular-title">
+  <div class="section-head"><h2 id="popular-title">Najpopularniejsze</h2></div>
+  <div class="grid">{% for o in popular %}{{ trip_card(o) }}{% endfor %}</div>
 </section>
 {% endif %}
 
-<section class="section" aria-labelledby="catalog-title">
+<section class="section" id="wyniki" aria-labelledby="catalog-title">
   <div class="section-head">
-    <div>
-      <p class="eyebrow">Katalog podróży</p>
-      <h2 id="catalog-title">Dostępne wycieczki</h2>
-    </div>
+    <h2 id="catalog-title">Dostępne wycieczki</h2>
+    <span class="muted">{{ offers|length }} {{ 'oferta' if offers|length == 1 else 'ofert' if offers|length == 0 or offers|length >= 5 else 'oferty' }}</span>
   </div>
-
-  <form class="filter-panel" method="get">
-    <div class="filter-grid">
-      <label>Skąd
-        <input name="origin" placeholder="np. Warszawa" value="{{ filters.get('origin', '') }}">
-      </label>
-      <label>Dokąd
-        <input name="destination" placeholder="np. Włochy" value="{{ filters.get('destination', '') }}">
-      </label>
-      <label>Wyjazd od
-        <input class="smart-date" type="{{ 'date' if filters.get('start') else 'text' }}"
-               name="start" placeholder="Wybierz datę" value="{{ filters.get('start', '') }}">
-      </label>
-      <label>Powrót do
-        <input class="smart-date" type="{{ 'date' if filters.get('end') else 'text' }}"
-               name="end" placeholder="Wybierz datę" value="{{ filters.get('end', '') }}">
-      </label>
-      <label>Maksymalna cena za osobę (zł)
-        <input type="number" name="max_price" min="0" step="any" value="{{ filters.get('max_price', '') }}">
-      </label>
-      <label class="checkbox-field">
-        <input type="checkbox" name="available" value="1"
-          {% if filters.get('available') == '1' %}checked{% endif %}>
-        <span>Tylko wolne miejsca</span>
-      </label>
-    </div>
-    <div class="filter-actions">
-      <button type="submit">Filtruj</button>
-      <a class="link-muted" href="{{ url_for('catalog') }}">Wyczyść filtry</a>
-    </div>
-  </form>
-
-  {% if error %}<p class="error">{{ error }}</p>{% endif %}
-
   {% if offers %}
-    <div class="grid">
-      {% for o in offers %}
-        <article class="card">
-          <div class="card-top">
-            <span class="badge badge-type">{{ o.trip_type }}</span>
-            {% if o.available_seats > 0 %}
-              <span class="badge badge-ok">Wolne miejsca: {{ o.available_seats }}</span>
-            {% else %}
-              <span class="badge badge-full">Brak miejsc</span>
-            {% endif %}
-          </div>
-          <h3>{{ o.origin }} → {{ o.destination }}</h3>
-          <p class="meta"><b>Termin:</b> {{ o.start_date }} – {{ o.end_date }}</p>
-          <p class="meta"><b>Cena:</b> {{ "%.2f"|format(o.price) }} zł / os.</p>
-          <p class="meta"><b>Limit miejsc:</b> {{ o.seats }}</p>
-          {% if o.available_seats > 0 %}
-            <a class="button" href="{{ url_for('reserve_offer', offer_id=o.id) }}">Zarezerwuj</a>
-          {% endif %}
-        </article>
-      {% endfor %}
-    </div>
+    <div class="grid">{% for o in offers %}{{ trip_card(o) }}{% endfor %}</div>
   {% else %}
-    <div class="empty-box">
-      <p>Brak dostępnych wycieczek spełniających kryteria.</p>
-    </div>
+    <div class="empty-box"><p>Brak wycieczek spełniających te kryteria.</p></div>
   {% endif %}
 </section>
+{% if flight_status %}
+<section class="section" aria-labelledby="flights-title">
+  <div class="section-head"><h2 id="flights-title">Rozkład lotów</h2></div>
+  {% if flight_status == 'idle' %}
+    <p class="muted">Podaj miasto wylotu lub kod lotniska, kierunek i datę w polu „Wyjazd od”.</p>
+  {% elif flight_status == 'unconfigured' %}
+    <p class="muted">Rozkład pojawi się po skonfigurowaniu połączenia z dostawcą.</p>
+  {% elif flight_status == 'choose_airport' %}
+    <p class="muted">Wpisz dokładne miasto wylotu lub kod IATA, np. KRK.</p>
+  {% elif flight_status == 'unavailable' %}
+    <p class="muted">Rozkład jest chwilowo niedostępny. Spróbuj ponownie później.</p>
+  {% elif flight_status == 'partial' %}
+    <p class="muted">Część rozkładu jest chwilowo niedostępna.</p>
+  {% elif not flights %}
+    <p class="muted">Brak pasujących lotów w rozkładzie na wybraną datę.</p>
+  {% endif %}
+  {% if flights %}
+  <p class="flight-note muted">Źródło: <a href="https://aerodatabox.com/">AeroDataBox</a>. Godziny miejscowe. Godzinę wejścia na pokład sprawdź na karcie pokładowej.</p>
+  <div class="grid">
+    {% for flight in flights %}
+      <article class="card reservation-card">
+        <p class="eyebrow">{{ flight.number or 'Lot' }}{% if flight.airline %} · {{ flight.airline }}{% endif %}</p>
+        <h3>{{ flight.origin }} → {{ flight.destination }}</h3>
+        <p class="muted">{{ flight.origin_code }} → {{ flight.destination_code or '—' }}</p>
+        <dl class="details-list">
+          <div><dt>Planowany wylot</dt><dd>{{ flight.departure[:10] }} · {{ flight.departure_time }}</dd></div>
+          {% if flight.arrival_time %}
+            <div><dt>Planowany przylot</dt><dd>{{ flight.arrival_date }} · {{ flight.arrival_time }}</dd></div>
+          {% endif %}
+          {% if flight.terminal %}<div><dt>Terminal wylotu</dt><dd>{{ flight.terminal }}</dd></div>{% endif %}
+          {% if flight.gate %}<div><dt>Bramka</dt><dd>{{ flight.gate }}</dd></div>{% endif %}
+        </dl>
+        {% if flight.boarding %}<p class="badge status-confirmed">Trwa wejście na pokład</p>{% endif %}
+      </article>
+    {% endfor %}
+  </div>
+  {% endif %}
+</section>
+{% endif %}
 {% endblock %}

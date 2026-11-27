@@ -8,9 +8,9 @@ from decimal import Decimal
 DB_PATH = os.environ.get("DATABASE", "gosolo.db")
 
 SAMPLE_OFFERS = [
-    ("Warszawa", "Chorwacja - Split", "2027-06-10", "2027-06-17", 2900, 20, "plażowy"),
-    ("Kraków", "Włochy - Rzym", "2027-04-02", "2027-04-06", 2100, 15, "miejski"),
-    ("Katowice", "Słowacja - Tatry", "2027-07-05", "2027-07-12", 1800, 12, "aktywny"),
+    ("Warszawa", "Split", "Chorwacja", "2027-06-10", "2027-06-17", 2900, 20, "plażowy"),
+    ("Kraków", "Rzym", "Włochy", "2027-04-02", "2027-04-06", 2100, 15, "miejski"),
+    ("Katowice", "Poprad", "Słowacja", "2027-07-05", "2027-07-12", 1800, 12, "aktywny"),
 ]
 
 
@@ -74,6 +74,16 @@ def init_db():
     if not _has_column(conn, "offers", "origin"):
         conn.execute("ALTER TABLE offers ADD COLUMN origin TEXT NOT NULL DEFAULT 'Warszawa'")
 
+    if not _has_column(conn, "offers", "country"):
+        conn.execute("ALTER TABLE offers ADD COLUMN country TEXT NOT NULL DEFAULT ''")
+        for offer in conn.execute("SELECT id, destination FROM offers").fetchall():
+            country, separator, city = offer["destination"].partition(" - ")
+            if separator and country.strip() and city.strip():
+                conn.execute(
+                    "UPDATE offers SET country = ?, destination = ? WHERE id = ?",
+                    (country.strip(), "Poprad" if offer["destination"] == "Słowacja - Tatry" else city.strip(), offer["id"]),
+                )
+
     if not _has_column(conn, "reservations", "payment_status"):
         conn.execute(
             "ALTER TABLE reservations ADD COLUMN payment_status TEXT NOT NULL DEFAULT 'unpaid' "
@@ -83,13 +93,19 @@ def init_db():
     if not _has_column(conn, "reservations", "user_id"):
         conn.execute("ALTER TABLE reservations ADD COLUMN user_id INTEGER REFERENCES users(id)")
 
+    if not _has_column(conn, "reservations", "deposit_grosz"):
+        conn.execute(
+            "ALTER TABLE reservations ADD COLUMN deposit_grosz INTEGER "
+            "CHECK (deposit_grosz > 0 AND deposit_grosz < total_grosz)"
+        )
+
     conn.execute("CREATE INDEX IF NOT EXISTS reservations_user ON reservations(user_id)")
 
     count = conn.execute("SELECT COUNT(*) FROM offers").fetchone()[0]
     if count == 0:
         conn.executemany(
-            "INSERT INTO offers (origin, destination, start_date, end_date, price, seats, trip_type) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO offers (origin, destination, country, start_date, end_date, price, seats, trip_type) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
             SAMPLE_OFFERS,
         )
     conn.commit()
@@ -133,8 +149,8 @@ def get_offer(offer_id):
 def add_offer(data):
     conn = get_conn()
     conn.execute(
-        "INSERT INTO offers (origin, destination, start_date, end_date, price, seats, trip_type) "
-        "VALUES (:origin, :destination, :start_date, :end_date, :price, :seats, :trip_type)",
+        "INSERT INTO offers (origin, destination, country, start_date, end_date, price, seats, trip_type) "
+        "VALUES (:origin, :destination, :country, :start_date, :end_date, :price, :seats, :trip_type)",
         data,
     )
     conn.commit()
@@ -144,7 +160,7 @@ def add_offer(data):
 def update_offer(offer_id, data):
     conn = get_conn()
     result = conn.execute(
-        "UPDATE offers SET origin = :origin, destination = :destination, start_date = :start_date, "
+        "UPDATE offers SET origin = :origin, destination = :destination, country = :country, start_date = :start_date, "
         "end_date = :end_date, price = :price, seats = :seats, trip_type = :trip_type "
         "WHERE id = :id AND :seats >= COALESCE(("
         "SELECT SUM(participants) FROM reservations WHERE offer_id = :id AND status != 'cancelled'"
@@ -241,10 +257,29 @@ def update_reservation_status(reservation_id, status):
         return result.rowcount == 1
 
 
-def update_payment_status(reservation_id, status):
+def cancel_user_reservation(reservation_id, user_id):
+    with closing(get_conn()) as conn, conn:
+        reservation = conn.execute(
+            "UPDATE reservations SET status = 'cancelled' "
+            "WHERE id = ? AND user_id = ? "
+            "RETURNING payment_status",
+            (reservation_id, user_id),
+        ).fetchone()
+        return reservation
+
+
+def update_payment_status(reservation_id, status, deposit_grosz=None):
     with closing(get_conn()) as conn, conn:
         result = conn.execute(
-            "UPDATE reservations SET payment_status = ? WHERE id = ?",
-            (status, reservation_id),
-        )
-        return result.rowcount == 1
+            "UPDATE reservations SET payment_status = :status, deposit_grosz = "
+            "CASE WHEN :status = 'deposit' THEN COALESCE(:deposit, deposit_grosz) END "
+            "WHERE id = :id AND (:deposit IS NULL OR :deposit < total_grosz) "
+            "RETURNING id",
+            {"status": status, "deposit": deposit_grosz, "id": reservation_id},
+        ).fetchone()
+        if result:
+            return True
+        exists = conn.execute(
+            "SELECT 1 FROM reservations WHERE id = ?", (reservation_id,)
+        ).fetchone()
+        return False if exists else None

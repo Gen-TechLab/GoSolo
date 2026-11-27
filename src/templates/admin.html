@@ -1,10 +1,13 @@
 {% extends "base.html" %}
 {% block title %}Panel agenta — GoSolo{% endblock %}
 {% block content %}
-<h1>Panel agenta</h1>
-<p><a class="button" href="{{ url_for('new_offer') }}">+ Dodaj ofertę</a></p>
+<div class="page-head">
+  <h1>Panel agenta</h1>
+  <a class="button" href="{{ url_for('new_offer') }}">+ Dodaj ofertę</a>
+</div>
+<h2>Oferty</h2>
 
-<div class="table-wrap">
+<div class="table-wrap" tabindex="0" role="region" aria-label="Oferty">
   <table>
     <tr>
       <th>Trasa (Skąd → Dokąd)</th>
@@ -21,13 +24,13 @@
         <td>{{ "%.2f"|format(o.price) }} zł</td>
         <td>{{ o.seats }}</td>
         <td>{{ o.trip_type }}</td>
-        <td class="actions">
-          <a href="{{ url_for('edit_offer', offer_id=o.id) }}">Edytuj</a>
+        <td><div class="actions table-actions offer-controls">
+          <a class="button button-secondary" href="{{ url_for('edit_offer', offer_id=o.id) }}">Edytuj</a>
           <form method="post" action="{{ url_for('delete_offer', offer_id=o.id) }}"
                 onsubmit="return confirm('Usunąć ofertę?');">
             <button type="submit" class="danger">Usuń</button>
           </form>
-        </td>
+        </div></td>
       </tr>
     {% endfor %}
   </table>
@@ -35,7 +38,7 @@
 
 <h2>Rezerwacje</h2>
 {% if reservations %}
-  <div class="table-wrap">
+  <div class="table-wrap" tabindex="0" role="region" aria-label="Rezerwacje">
     <table>
       <tr>
         <th>Nr</th>
@@ -48,26 +51,31 @@
         <th>Akcje</th>
       </tr>
       {% for r in reservations %}
-        <tr>
+        <tr id="rezerwacja-{{ r.id }}">
           <td>{{ r.id }}</td>
           <td>{{ r.user_email or "Gość" }}</td>
           <td>{{ r.origin }} → {{ r.destination }}</td>
           <td>{{ r.participants }}</td>
-          <td>{{ r.total_grosz // 100 }},{{ "%02d"|format(r.total_grosz % 100) }} zł</td>
-          <td>{{ reservation_statuses[r.status] }}</td>
+          <td class="amount">{{ r.total_grosz|pln }}</td>
+          <td><span class="badge status-{{ r.status }}">{{ reservation_statuses[r.status] }}</span></td>
           <td>
-            <form class="actions" method="post" action="{{ url_for('payment_status', reservation_id=r.id) }}">
+            <form class="payment-editor" method="post" action="{{ url_for('payment_status', reservation_id=r.id) }}">
               <select name="status" aria-label="Status płatności rezerwacji {{ r.id }}">
                 {% for value, label in payment_statuses.items() %}
                   <option value="{{ value }}" {% if r.payment_status == value %}selected{% endif %}>{{ label }}</option>
                 {% endfor %}
               </select>
-              <button type="submit">Zapisz</button>
+              <label class="deposit-field">
+                Wpłacona zaliczka (zł)
+                <input type="number" name="deposit" min="0.01" step="0.01"
+                       value="{% if r.deposit_grosz is not none %}{{ r.deposit_grosz // 100 }}.{{ '%02d'|format(r.deposit_grosz % 100) }}{% endif %}">
+              </label>
+              <button type="submit" class="button-secondary">Zapisz</button>
             </form>
           </td>
           <td>
             {% if r.status != 'cancelled' %}
-              <form class="actions" method="post" action="{{ url_for('reservation_status', reservation_id=r.id) }}">
+              <form class="actions table-actions reservation-controls" method="post" action="{{ url_for('reservation_status', reservation_id=r.id) }}">
                 {% if r.status == 'pending' %}
                   <button type="submit" name="status" value="confirmed">Potwierdź</button>
                 {% endif %}
@@ -82,4 +90,18 @@
 {% else %}
   <p>Brak rezerwacji.</p>
 {% endif %}
+<script>
+  document.querySelectorAll(".payment-editor").forEach((form) => {
+    const status = form.elements.status;
+    const deposit = form.elements.deposit;
+    const field = deposit.closest("label");
+    const update = () => {
+      const isDeposit = status.value === "deposit";
+      field.hidden = !isDeposit;
+      deposit.disabled = !isDeposit;
+    };
+    status.addEventListener("change", update);
+    update();
+  });
+</script>
 {% endblock %}

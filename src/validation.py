@@ -13,6 +13,7 @@ def validate_offer(form):
 
     origin = form.get("origin", "").strip()
     destination = form.get("destination", "").strip()
+    country = form.get("country", "").strip()
     start_date = form.get("start_date", "").strip()
     end_date = form.get("end_date", "").strip()
     price = form.get("price", "").strip()
@@ -24,6 +25,9 @@ def validate_offer(form):
 
     if not destination:
         errors.append("Kierunek (Dokąd) jest wymagany.")
+
+    if not country:
+        errors.append("Kraj docelowy jest wymagany.")
 
     try:
         if date.fromisoformat(end_date) < date.fromisoformat(start_date):
@@ -51,6 +55,7 @@ def validate_offer(form):
     data = {
         "origin": origin,
         "destination": destination,
+        "country": country,
         "start_date": start_date,
         "end_date": end_date,
         "price": price,

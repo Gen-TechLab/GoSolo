@@ -11,7 +11,8 @@ from src import db  # noqa: E402
 
 
 @pytest.fixture
-def client(tmp_path):
+def client(tmp_path, monkeypatch):
+    monkeypatch.delenv("AERODATABOX_API_KEY", raising=False)
     db.DB_PATH = str(tmp_path / "test.db")  # fresh database for every test
     db.init_db()
     app_module.app.config["TESTING"] = True
